@@ -1,0 +1,96 @@
+{
+    "path": {
+        "data": "data",
+        "code": "code",
+        "log": "log",
+        "model": "model",
+        "state_dict": "state_dict",
+        "submit": "submit",
+        "train": "train",
+        "valid": "valid",
+        "ensemble": "ensemble"
+    },
+
+    "file_name": {
+        "train": "train_data",
+        "test": "test_data"
+    },
+
+
+    "seed": 42,
+    "device": "cuda",
+
+
+    "choose_columns": [
+        "userID",
+        "assessmentItemID",
+        "testId",
+        "answerCode",
+        "KnowledgeTag",
+        "big_tag"
+    ],
+
+    "index_columns": [
+        "assessmentItemID",
+        "testId",
+        "KnowledgeTag",
+        "big_tag"
+    ],
+
+    "predict_column": "answerCode",
+
+
+    "train_valid_split": 0.7,
+
+
+    "model_name": "bert",
+    "loss_fn": "BCEWLL",
+    "optimizer": "ADAM",
+    "scheduler": "plateau",
+    "epoch": 40,
+    "batch_size": 16,
+    "num_workers": 1,
+
+
+    "adam": {
+        "learn_rate": 0.00002,
+        "weight_decay": 0.01
+    },
+
+    
+    "plateau":   {
+        "patience": 10,
+        "factor": 0.5,
+        "mode": "max",
+        "verbose": true
+    },
+
+
+    "lstm": {
+        "hidden_dim": 64,
+        "n_layers": 2,
+        "input_dim": 21,
+        "lstm_input_dim": 64,
+        "max_seq_len": 20
+    },
+
+    "lstm_attn":    {
+        "hidden_dim": 64,
+        "n_layers": 2,
+        "n_heads": 2,
+        "input_dim": 21,
+        "lstm_input_dim": 64,
+        "drop_out": 0.2,
+        "max_seq_len": 20
+    },
+
+    "bert": {
+        "hidden_dim": 64,
+        "n_layers": 2,
+        "n_heads": 2,
+        "input_dim": 21,
+        "lstm_input_dim": 64,
+        "max_seq_len": 20
+    }
+
+}
