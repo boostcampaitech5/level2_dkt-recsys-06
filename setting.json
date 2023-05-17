@@ -21,20 +21,14 @@
     "device": "cuda",
 
 
-    "choose_columns": [
-        "userID",
-        "assessmentItemID",
+    "train_columns": [
         "testId",
-        "answerCode",
-        "KnowledgeTag",
-        "big_tag"
+        "KnowledgeTag"
     ],
 
-    "index_columns": [
-        "assessmentItemID",
+    "embedding_columns": [
         "testId",
-        "KnowledgeTag",
-        "big_tag"
+        "KnowledgeTag"
     ],
 
     "predict_column": "answerCode",
@@ -43,7 +37,7 @@
     "train_valid_split": 0.7,
 
 
-    "model_name": "bert",
+    "model_name": "lstm",
     "loss_fn": "BCEWLL",
     "optimizer": "ADAM",
     "scheduler": "plateau",
@@ -57,7 +51,7 @@
         "weight_decay": 0.01
     },
 
-    
+
     "plateau":   {
         "patience": 10,
         "factor": 0.5,

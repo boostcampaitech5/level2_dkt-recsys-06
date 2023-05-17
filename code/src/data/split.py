@@ -24,7 +24,7 @@ class DKTDataset(torch.utils.data.Dataset):
         self.predict_column = settings["predict_column"]
 
         # The indexed columns
-        self.index_column = settings["index_columns"]
+        self.index_column = settings["embedding_columns"]
 
     def __getitem__(self, index: int) -> dict:
         row = self.data[index]

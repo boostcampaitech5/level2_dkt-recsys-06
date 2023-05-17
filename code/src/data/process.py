@@ -15,28 +15,30 @@ def index_data(data: dict, settings: dict) -> dict:
         idx(dict): Dictionary containing the length of each columns
                    Used in making embedded layers
     """
-    idx = dict()
+    max_label_dict = dict()
 
     # Loop for each indexing columns
-    for index_column in settings["index_columns"]:
+    for col in settings["embedding_columns"]:
         # Create label encoder and fit values to it
         le = LabelEncoder()
-        unique_value = data["train"][index_column].unique().tolist() + ["unknown"]
+        unique_value = data["train"][col].unique().tolist() + ["unknown"]
         le.fit(unique_value)
 
         # Change test dataset to fit labels
-        data["test"][index_column] = data["test"][index_column].apply(
+        data["test"][col] = data["test"][col].apply(
             lambda x: x if str(x) in le.classes_ else "unknown"
         )
 
         # Map the labels to values
-        data["train"][index_column] = le.transform(data["train"][index_column])
-        data["test"][index_column] = le.transform(data["test"][index_column])
+        data["train"][col] = le.transform(data["train"][col])
+        data["test"][col] = le.transform(data["test"][col])
 
         # Save length of label for future use
-        idx[index_column] = len(unique_value)
+        max_label_dict[col] = len(unique_value)
 
-    return idx
+    settings["max_label_dict"] = max_label_dict
+
+    return
 
 
 def process_mlp(data: dict) -> None:
@@ -112,8 +114,8 @@ def process_data(data: dict, settings: dict) -> None:
     print("Dropping Columns...")
 
     # Drop unwanted columns
-    data["train"] = data["train"][settings["choose_columns"]]
-    data["test"] = data["test"][settings["choose_columns"]]
+    data["train"] = data["train"][settings["train_columns"]]
+    data["test"] = data["test"][settings["train_columns"]]
 
     print("Dropped Columns!")
     print()
@@ -121,7 +123,7 @@ def process_data(data: dict, settings: dict) -> None:
     print("Indexing Columns...")
 
     # Label columns
-    data["idx"] = index_data(data, settings)
+    index_data(data, settings)
 
     print("Indexed Columns!")
     print()

@@ -13,19 +13,19 @@ class BidirectionalEncoderRepresentationsfromTransformers(nn.Module):
         self.input_embed_dim = settings["bert"]["input_dim"]
         self.lstm_input_dim = settings["bert"]["lstm_input_dim"]
         self.n_layers = settings["bert"]["n_layers"]
-        self.n_input_list = data["idx"]
+        self.max_label_dict = data["idx"]
 
         # embedding layers
         self.embedding = dict()
         self.embedding["interaction"] = nn.Embedding(3, self.input_embed_dim).to(
             self.device
         )
-        for i, v in self.n_input_list.items():
+        for i, v in self.max_label_dict.items():
             self.embedding[i] = nn.Embedding(v + 1, self.input_embed_dim).to(
                 self.device
             )
 
-        self.n_input_list["interaction"] = 3
+        self.max_label_dict["interaction"] = 3
 
         self.input_lin = nn.Linear(
             len(self.embedding) * self.input_embed_dim, self.lstm_input_dim
@@ -48,7 +48,7 @@ class BidirectionalEncoderRepresentationsfromTransformers(nn.Module):
         input_size = len(x["interaction"])
 
         embedded_x = torch.cat(
-            [self.embedding[i](x[i].int()) for i in list(self.n_input_list)], dim=2
+            [self.embedding[i](x[i].int()) for i in list(self.max_label_dict)], dim=2
         )
 
         input_x = self.input_lin(embedded_x)

@@ -60,6 +60,15 @@ def set_basic_settings(settings: dict) -> None:
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
 
+    fixed_columns = ["userID", "assessmentItemID", "answerCode"]
+    fixed_embedding_columns = ["assessmentItemID"]
+
+    settings["linear_columns"] = list(
+        set(settings["train_columns"]) - set(settings["embedding_columns"])
+    )
+    settings["train_columns"] += fixed_columns
+    settings["embedding_columns"] += fixed_embedding_columns
+
     return
 
 
@@ -174,10 +183,12 @@ class SaveSetting:
         """
         # Starts writing log as new file
         with open(os.path.join(self.log_folder_path, self.name) + ".txt", "w") as f:
-            f.write("Choosen Columns:\t")
-            f.write(", ".join(settings["choose_columns"]) + "\n")
-            f.write("Indexed Columns:\t")
-            f.write(", ".join(settings["index_columns"]) + "\n")
+            f.write("Choosen Columns for Training:\t")
+            f.write(", ".join(settings["train_columns"]) + "\n")
+            f.write("Embedded Columns:\t")
+            f.write(", ".join(settings["embedding_columns"]) + "\n")
+            f.write("Non-Embedded Columns:\t")
+            f.write(", ".join(settings["linear_columns"]) + "\n")
             f.write("=" * 30 + "\n\n")
 
         return
