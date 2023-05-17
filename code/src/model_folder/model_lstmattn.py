@@ -9,14 +9,12 @@ class LongShortTermMemoryAttention(EmbedBase):
     def __init__(self, settings):
         super().__init__(settings, settings["lstm_attn"])
 
-        self.device = settings["device"]
-
         self.n_layers = settings["lstm_attn"]["n_layers"]
         self.output_dim = settings["lstm_attn"]["output_dim"]
 
         self.lstm = nn.LSTM(
             self.input_dim, self.output_dim, self.n_layers, batch_first=True
-        ).to(self.device)
+        )
 
         self.n_heads = settings["lstm_attn"]["n_heads"]
         self.drop_out = settings["lstm_attn"]["drop_out"]
@@ -31,9 +29,9 @@ class LongShortTermMemoryAttention(EmbedBase):
             attention_probs_dropout_prob=self.drop_out,
         )
 
-        self.attn = BertEncoder(self.config).to(self.device)
+        self.attn = BertEncoder(self.config)
 
-        self.output_lin = nn.Linear(self.output_dim, 1).to(self.device)
+        self.output_lin = nn.Linear(self.output_dim, 1)
 
     def forward(self, x):
         input_size = len(x["interaction"])

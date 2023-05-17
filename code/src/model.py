@@ -30,4 +30,4 @@ def create_model(data: dict, settings: dict):
     print("Created Model!")
     print()
 
-    return model
+    return model.to(settings["device"])

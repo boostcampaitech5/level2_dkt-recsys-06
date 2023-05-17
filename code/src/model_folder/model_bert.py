@@ -20,9 +20,9 @@ class BidirectionalEncoderRepresentationsfromTransformers(EmbedBase):
             max_position_embeddings=settings["bert"]["max_seq_len"],
         )
 
-        self.encoder = BertModel(self.config).to(self.device)
+        self.encoder = BertModel(self.config)
 
-        self.output_lin = nn.Linear(self.input_dim, 1).to(self.device)
+        self.output_lin = nn.Linear(self.input_dim, 1)
 
     def forward(self, x):
         input_size = len(x["interaction"])
