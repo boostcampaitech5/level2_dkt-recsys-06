@@ -2,38 +2,20 @@ import torch
 import torch.nn as nn
 from transformers.models.bert.modeling_bert import BertConfig, BertEncoder, BertModel
 
+from .model_base.model_embed_base import EmbedBase
 
-class LongShortTermMemoryAttention(nn.Module):
-    def __init__(self, data, settings):
-        super().__init__()
+
+class LongShortTermMemoryAttention(EmbedBase):
+    def __init__(self, settings):
+        super().__init__(settings, settings["lstm_attn"])
 
         self.device = settings["device"]
 
-        self.hidden_dim = settings["lstm_attn"]["hidden_dim"]
-        self.input_embed_dim = settings["lstm_attn"]["input_dim"]
-        self.lstm_input_dim = settings["lstm_attn"]["lstm_input_dim"]
         self.n_layers = settings["lstm_attn"]["n_layers"]
-        self.max_label_dict = data["idx"]
-
-        # embedding layers
-        self.embedding = dict()
-        self.embedding["interaction"] = nn.Embedding(3, self.input_embed_dim).to(
-            self.device
-        )
-        for i, v in self.max_label_dict.items():
-            self.embedding[i] = nn.Embedding(v + 1, self.input_embed_dim).to(
-                self.device
-            )
-
-        self.max_label_dict["interaction"] = 3
-
-        self.input_lin = nn.Linear(
-            len(self.embedding) * self.input_embed_dim, self.lstm_input_dim
-        ).to(self.device)
-        self.output_lin = nn.Linear(self.hidden_dim, 1).to(self.device)
+        self.output_dim = settings["lstm_attn"]["output_dim"]
 
         self.lstm = nn.LSTM(
-            self.lstm_input_dim, self.hidden_dim, self.n_layers, batch_first=True
+            self.input_dim, self.output_dim, self.n_layers, batch_first=True
         ).to(self.device)
 
         self.n_heads = settings["lstm_attn"]["n_heads"]
@@ -41,28 +23,26 @@ class LongShortTermMemoryAttention(nn.Module):
 
         self.config = BertConfig(
             3,  # not used
-            hidden_size=self.hidden_dim,
+            hidden_size=self.output_dim,
             num_hidden_layers=1,
             num_attention_heads=self.n_heads,
-            intermediate_size=self.hidden_dim,
+            intermediate_size=self.output_dim,
             hidden_dropout_prob=self.drop_out,
             attention_probs_dropout_prob=self.drop_out,
         )
 
         self.attn = BertEncoder(self.config).to(self.device)
 
+        self.output_lin = nn.Linear(self.output_dim, 1).to(self.device)
+
     def forward(self, x):
         input_size = len(x["interaction"])
 
-        embedded_x = torch.cat(
-            [self.embedding[i](x[i].int()) for i in list(self.max_label_dict)], dim=2
-        )
-
-        input_x = self.input_lin(embedded_x)
+        input_x = super().forward(x)
 
         output_x, _ = self.lstm(input_x)
 
-        output_x = output_x.contiguous().view(input_size, -1, self.hidden_dim)
+        output_x = output_x.contiguous().view(input_size, -1, self.output_dim)
 
         extended_attention_mask = x["mask"].unsqueeze(1).unsqueeze(2)
         extended_attention_mask = extended_attention_mask.to(dtype=torch.float32)

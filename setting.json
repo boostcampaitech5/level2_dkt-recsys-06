@@ -61,30 +61,29 @@
 
 
     "lstm": {
-        "hidden_dim": 64,
-        "n_layers": 2,
-        "input_dim": 21,
-        "lstm_input_dim": 64,
-        "max_seq_len": 20
+        "embedding_dim": 21,
+        "input_dim": 64,
+        "output_dim": 64,
+        "max_seq_len": 20,
+        "n_layers": 2
     },
 
     "lstm_attn":    {
-        "hidden_dim": 64,
+        "embedding_dim": 21,
+        "input_dim": 64,
+        "output_dim": 64,
+        "max_seq_len": 20,
         "n_layers": 2,
         "n_heads": 2,
-        "input_dim": 21,
-        "lstm_input_dim": 64,
-        "drop_out": 0.2,
-        "max_seq_len": 20
+        "drop_out": 0.2
     },
 
     "bert": {
-        "hidden_dim": 64,
+        "embedding_dim": 21,
+        "input_dim": 64,
+        "max_seq_len": 20,
         "n_layers": 2,
-        "n_heads": 2,
-        "input_dim": 21,
-        "lstm_input_dim": 64,
-        "max_seq_len": 20
+        "n_heads": 2
     }
 
 }

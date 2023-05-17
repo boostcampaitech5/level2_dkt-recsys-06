@@ -19,11 +19,11 @@ def create_model(data: dict, settings: dict):
     if settings["model_name"].lower() == "mlp":
         model = MultiLayerPerceptronClass(settings, input_dim=settings["column_num"])
     elif settings["model_name"].lower() == "lstm":
-        model = LongShortTermMemory(data, settings)
+        model = LongShortTermMemory(settings)
     elif settings["model_name"].lower() == "lstm_attn":
-        model = LongShortTermMemoryAttention(data, settings)
+        model = LongShortTermMemoryAttention(settings)
     elif settings["model_name"].lower() == "bert":
-        model = BidirectionalEncoderRepresentationsfromTransformers(data, settings)
+        model = BidirectionalEncoderRepresentationsfromTransformers(settings)
     else:
         print("No model found ending program")
 

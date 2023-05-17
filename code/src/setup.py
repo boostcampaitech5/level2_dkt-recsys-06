@@ -63,7 +63,7 @@ def set_basic_settings(settings: dict) -> None:
     fixed_columns = ["userID", "assessmentItemID", "answerCode"]
     fixed_embedding_columns = ["assessmentItemID"]
 
-    settings["linear_columns"] = list(
+    settings["non_embedding_columns"] = list(
         set(settings["train_columns"]) - set(settings["embedding_columns"])
     )
     settings["train_columns"] += fixed_columns
@@ -188,7 +188,7 @@ class SaveSetting:
             f.write("Embedded Columns:\t")
             f.write(", ".join(settings["embedding_columns"]) + "\n")
             f.write("Non-Embedded Columns:\t")
-            f.write(", ".join(settings["linear_columns"]) + "\n")
+            f.write(", ".join(settings["non_embedding_columns"]) + "\n")
             f.write("=" * 30 + "\n\n")
 
         return

@@ -1,52 +1,30 @@
 import torch
 import torch.nn as nn
 
+from .model_base.model_embed_base import EmbedBase
 
-class LongShortTermMemory(nn.Module):
-    def __init__(self, data, settings):
-        super().__init__()
 
-        self.device = settings["device"]
+class LongShortTermMemory(EmbedBase):
+    def __init__(self, settings):
+        super().__init__(settings, settings["lstm"])
 
-        self.hidden_dim = settings["lstm"]["hidden_dim"]
-        self.input_embed_dim = settings["lstm"]["input_dim"]
-        self.lstm_input_dim = settings["lstm"]["lstm_input_dim"]
         self.n_layers = settings["lstm"]["n_layers"]
-        self.max_label_dict = settings["max_label_dict"]
-
-        # embedding layers
-        self.embedding = dict()
-        self.embedding["interaction"] = nn.Embedding(3, self.input_embed_dim).to(
-            self.device
-        )
-        for i, v in self.max_label_dict.items():
-            self.embedding[i] = nn.Embedding(v + 1, self.input_embed_dim).to(
-                self.device
-            )
-
-        self.max_label_dict["interaction"] = 3
-
-        self.input_lin = nn.Linear(
-            len(self.embedding) * self.input_embed_dim, self.lstm_input_dim
-        ).to(self.device)
-        self.output_lin = nn.Linear(self.hidden_dim, 1).to(self.device)
+        self.output_dim = settings["lstm"]["output_dim"]
 
         self.lstm = nn.LSTM(
-            self.lstm_input_dim, self.hidden_dim, self.n_layers, batch_first=True
+            self.input_dim, self.output_dim, self.n_layers, batch_first=True
         ).to(self.device)
+
+        self.output_lin = nn.Linear(self.output_dim, 1).to(self.device)
 
     def forward(self, x):
         input_size = len(x["interaction"])
 
-        embedded_x = torch.cat(
-            [self.embedding[i](x[i].int()) for i in list(self.max_label_dict)], dim=2
-        )
-
-        input_x = self.input_lin(embedded_x)
+        input_x = super().forward(x)
 
         output_x, _ = self.lstm(input_x)
 
-        output_x = output_x.contiguous().view(input_size, -1, self.hidden_dim)
+        output_x = output_x.contiguous().view(input_size, -1, self.output_dim)
 
         y_hat = self.output_lin(output_x).view(input_size, -1)
 
