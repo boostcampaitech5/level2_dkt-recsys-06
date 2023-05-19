@@ -39,19 +39,6 @@ def index_data(data: dict, settings: dict) -> dict:
     return idx
 
 
-def process_mlp(data: dict) -> None:
-    """
-    Processes data for MLP training.
-
-    Parameters:
-        data(dict): Dictionary containing the unprocessed dataframes.
-    """
-
-    average_fill_na(data["user_data"], "age")
-
-    return
-
-
 def process_lstm(data: dict) -> None:
     # Order data by user and time
     data["train"] = data["train"].sort_values(by=["userID", "Timestamp"], axis=0)
@@ -94,9 +81,7 @@ def process_data(data: dict, settings: dict) -> None:
     print("Modifing Data...")
 
     # Modify/Create columns in data
-    if settings["model_name"].lower() == "mlp":
-        process_mlp(data)
-    elif settings["model_name"].lower() == "lstm":
+    if settings["model_name"].lower() == "lstm":
         process_lstm(data)
     elif settings["model_name"].lower() == "lstm_attn":
         process_lstm_attn(data)
