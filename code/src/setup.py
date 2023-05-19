@@ -60,14 +60,12 @@ def set_basic_settings(settings: dict) -> None:
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
 
-    fixed_columns = ["userID", "assessmentItemID", "answerCode"]
-    fixed_embedding_columns = ["assessmentItemID"]
-
     settings["non_embedding_columns"] = list(
         set(settings["train_columns"]) - set(settings["embedding_columns"])
     )
-    settings["train_columns"] += fixed_columns
-    settings["embedding_columns"] += fixed_embedding_columns
+
+    settings["train_columns"] += settings["fixed_train_columns"]
+    settings["embedding_columns"] += settings["fixed_embedding_columns"]
 
     return
 

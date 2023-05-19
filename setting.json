@@ -20,6 +20,15 @@
     "seed": 42,
     "device": "cuda",
 
+    "fixed_train_columns": [
+        "userID",
+        "assessmentItemID",
+        "answerCode"
+    ],
+
+    "fixed_embedding_columns": [
+        "assessmentItemID"
+    ],
 
     "train_columns": [
         "testId",
@@ -41,7 +50,7 @@
     "loss_fn": "BCEWLL",
     "optimizer": "ADAM",
     "scheduler": "plateau",
-    "epoch": 40,
+    "epoch": 10,
     "batch_size": 16,
     "num_workers": 1,
 
