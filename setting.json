@@ -57,7 +57,7 @@
         "weight_decay": 0.01
     },
 
-    
+
     "plateau":   {
         "patience": 10,
         "factor": 0.5,
@@ -71,7 +71,8 @@
         "n_layers": 2,
         "input_dim": 21,
         "lstm_input_dim": 64,
-        "max_seq_len": 20
+        "max_seq_len": 20,
+        "dense_layer_dim": [16]
     },
 
     "lstm_attn":    {
@@ -81,7 +82,8 @@
         "input_dim": 21,
         "lstm_input_dim": 64,
         "drop_out": 0.2,
-        "max_seq_len": 20
+        "max_seq_len": 20,
+        "dense_layer_dim": [16, 4]
     },
 
     "bert": {
@@ -90,7 +92,8 @@
         "n_heads": 2,
         "input_dim": 21,
         "lstm_input_dim": 64,
-        "max_seq_len": 20
+        "max_seq_len": 20,
+        "dense_layer_dim": [16, 4]
     }
 
 }

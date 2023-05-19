@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from .model_base.model_mlp import MultiLayerPerceptron
+
 
 class LongShortTermMemory(nn.Module):
     def __init__(self, data, settings):
@@ -13,6 +15,7 @@ class LongShortTermMemory(nn.Module):
         self.lstm_input_dim = settings["lstm"]["lstm_input_dim"]
         self.n_layers = settings["lstm"]["n_layers"]
         self.n_input_list = data["idx"]
+        self.dense_layer_dim = settings["lstm"]["dense_layer_dim"]
 
         # embedding layers
         self.embedding = dict()
@@ -29,7 +32,9 @@ class LongShortTermMemory(nn.Module):
         self.input_lin = nn.Linear(
             len(self.embedding) * self.input_embed_dim, self.lstm_input_dim
         ).to(self.device)
-        self.output_lin = nn.Linear(self.hidden_dim, 1).to(self.device)
+        self.output_lin = MultiLayerPerceptron(
+            self.hidden_dim, self.dense_layer_dim
+        ).to(self.device)
 
         self.lstm = nn.LSTM(
             self.lstm_input_dim, self.hidden_dim, self.n_layers, batch_first=True
