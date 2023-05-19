@@ -30,9 +30,12 @@ class LongShortTermMemoryAttention(nn.Module):
 
         self.n_input_list["interaction"] = 3
 
+        # input linear layer
         self.input_lin = nn.Linear(
             len(self.embedding) * self.input_embed_dim, self.lstm_input_dim
         ).to(self.device)
+
+        # output MLP layer
         self.output_lin = MultiLayerPerceptron(
             self.hidden_dim, self.dense_layer_dim
         ).to(self.device)
