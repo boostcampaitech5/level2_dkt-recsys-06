@@ -2,15 +2,22 @@ import torch
 import torch.nn as nn
 from transformers.models.bert.modeling_bert import BertConfig, BertEncoder, BertModel
 
-from .model_base.model_embed_base import EmbedBase
+from .model_base.model_embed_base import EmbedLayer
 
 
-class LongShortTermMemoryAttention(EmbedBase):
+class LongShortTermMemoryAttention(nn.Module):
     def __init__(self, settings):
-        super().__init__(settings, settings["lstm_attn"])
+        super().__init__()
 
+        self.embedding_dim = settings["lstm_attn"]["embedding_dim"]
+        self.input_dim = settings["lstm_attn"]["input_dim"]
+        self.max_label_dict = settings["max_label_dict"]
         self.n_layers = settings["lstm_attn"]["n_layers"]
         self.output_dim = settings["lstm_attn"]["output_dim"]
+
+        self.embed_layer = EmbedLayer(
+            self.embedding_dim, self.input_dim, self.max_label_dict
+        )
 
         self.lstm = nn.LSTM(
             self.input_dim, self.output_dim, self.n_layers, batch_first=True
@@ -36,7 +43,7 @@ class LongShortTermMemoryAttention(EmbedBase):
     def forward(self, x):
         input_size = len(x["interaction"])
 
-        input_x = super().forward(x)
+        input_x = self.embed_layer(x)
 
         output_x, _ = self.lstm(input_x)
 

@@ -2,13 +2,13 @@ import torch
 import torch.nn as nn
 
 
-class EmbedBase(nn.Module):
-    def __init__(self, settings, model_settings):
+class EmbedLayer(nn.Module):
+    def __init__(self, embedding_dim, input_dim, max_label_dict):
         super().__init__()
 
-        self.embedding_dim = model_settings["embedding_dim"]
-        self.input_dim = model_settings["input_dim"]
-        self.max_label_dict = settings["max_label_dict"]
+        self.embedding_dim = embedding_dim
+        self.input_dim = input_dim
+        self.max_label_dict = max_label_dict
 
         # embedding layers
         self.embedding = nn.ModuleDict(
@@ -19,8 +19,6 @@ class EmbedBase(nn.Module):
         )
 
         self.embedding["interaction"] = nn.Embedding(3, self.embedding_dim)
-
-        self.embedding = self.embedding
 
         self.max_label_dict["interaction"] = 3
 

@@ -2,15 +2,22 @@ import torch
 import torch.nn as nn
 from transformers.models.bert.modeling_bert import BertConfig, BertEncoder, BertModel
 
-from .model_base.model_embed_base import EmbedBase
+from .model_base.model_embed_base import EmbedLayer
 
 
-class BidirectionalEncoderRepresentationsfromTransformers(EmbedBase):
+class BidirectionalEncoderRepresentationsfromTransformers(nn.Module):
     def __init__(self, settings):
-        super().__init__(settings, settings["bert"])
+        super().__init__()
 
+        self.embedding_dim = settings["bert"]["embedding_dim"]
+        self.input_dim = settings["bert"]["input_dim"]
+        self.max_label_dict = settings["max_label_dict"]
         self.n_layers = settings["bert"]["n_layers"]
         self.n_heads = settings["bert"]["n_heads"]
+
+        self.embed_layer = EmbedLayer(
+            self.embedding_dim, self.input_dim, self.max_label_dict
+        )
 
         self.config = BertConfig(
             3,  # not used
@@ -27,7 +34,7 @@ class BidirectionalEncoderRepresentationsfromTransformers(EmbedBase):
     def forward(self, x):
         input_size = len(x["interaction"])
 
-        input_x = super().forward(x)
+        input_x = self.embed_layer(x)
 
         encoded_layers = self.encoder(inputs_embeds=input_x, attention_mask=x["mask"])
         out = encoded_layers[0]
