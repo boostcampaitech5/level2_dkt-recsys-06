@@ -106,13 +106,46 @@ def data_split(data: dict, settings: dict) -> None:
     ## Having both files with different train and valid datasets will prevent us from making a loss estimate
     random.seed(0)
 
-    # Shuffle the train dataset randomly
-    random.shuffle(data["train"])
-
     # Divide data by ratio
     train_size = int(len(data["train"]) * settings["train_valid_split"])
     data["valid"] = data["train"][train_size:]
     data["train"] = data["train"][:train_size]
+
+    print("Splitted Data!")
+    print()
+
+    return
+
+
+def graph_data_split(data: dict, settings: dict) -> None:
+    """Graph_Model Train_Valid Split
+
+    Args:
+        data (dict): Graph-based preprocessed data
+        settings (dict): Generated Settings
+    """
+    # Fix to default seed 0
+    # This is needed when ensembling both files
+    ## Having both files with different train and valid datasets will prevent us from making a loss estimate
+    np.random.seed(0)
+
+    # size : # of edge of train
+    size_all = len(data["train"]["label"])
+    train_size = int(size_all * settings["train_valid_split"])
+
+    edge_ids = np.arange(size_all)
+    edge_ids = np.random.permutation(edge_ids)
+
+    train_edge_ids = edge_ids[:train_size]
+    valid_edge_ids = edge_ids[train_size:]
+
+    edge, label = data["train"]["edge"], data["train"]["label"]
+    # label = label.to("cpu").detach().numpy()
+
+    print(type(label))
+
+    data["train"] = dict(edge=edge[:, train_edge_ids], label=label[train_edge_ids])
+    data["valid"] = dict(edge=edge[:, valid_edge_ids], label=label[valid_edge_ids])
 
     print("Splitted Data!")
     print()
@@ -187,4 +220,18 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
     print("Created Dataloader!")
     print()
 
+    return dataloader
+
+
+# graph DataLoader
+def create_graph_dataloader(data: dict) -> dict:
+    """Create dataloader for graph model
+
+    Args:
+        data (dict): trian, vaild, test
+
+    Returns:
+        dict: dataloader
+    """
+    dataloader = {"train": data["train"], "valid": data["valid"], "test": data["test"]}
     return dataloader
