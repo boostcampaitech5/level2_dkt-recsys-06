@@ -179,7 +179,7 @@ def process_data(data: dict, settings: dict) -> None:
         process_lgcn(data)
         print("Make Node Information!!...")
         node2idx = make_nodes(data["concat_data"])
-        data["n_node"] = len(node2idx)
+        data["num_nodes"] = len(node2idx)
         data["train"] = get_edge_label_dict(
             data["train"], node2idx=node2idx, device=settings["device"]
         )
@@ -213,79 +213,3 @@ def process_data(data: dict, settings: dict) -> None:
     print()
 
     return
-
-
-if __name__ == "__main__":
-    data_path = "/opt/ml/input/data/"
-    data = dict()
-    data["train"] = pd.read_csv(data_path + "train_data.csv")
-    data["test"] = pd.read_csv(data_path + "test_data.csv")
-
-    print(f"train data 개수 : {len(data['train'])}")
-    # print("*******************train_head*******************")
-    # print(data['train'].head())
-    # print("*******************train_tail*******************")
-    # print(data['train'].tail())
-
-    print("\n\n")
-
-    print(f"test data 개수: {len(data['test'])}")
-    # print("*******************test_head*******************")
-    # print(data['test'].head())
-    # print("*******************test_tail*******************")
-    # print(data['test'].tail())
-
-    print("\n\n")
-
-    process_lgcn(data)
-
-    print("*********************************************************")
-    print("**********************process_lgcn***********************")
-
-    print(f"concat data 개수: {len(data['concat_data'])}")
-    # print("*******************concat_head*******************")
-    # print(data['concat_data'].head())
-    # print("*******************concat_tail*******************")
-    # print(data['concat_data'].tail())
-
-    print("\n\n")
-
-    print(f"train data 개수 : {len(data['train'])}")
-    # print("*******************train_head*******************")
-    # print(data['train'].head())
-    # print("*******************train_tail*******************")
-    # print(data['train'].tail())
-
-    print("\n\n")
-
-    print(f"test data 개수: {len(data['test'])}")
-    # print("*******************test_head*******************")
-    # print(data['test'].head())
-    # print("*******************test_tail*******************")
-    # print(data['test'].tail())
-
-    node2idx = make_nodes(data_concat=data["concat_data"])
-
-    print(f"node의 개수 : {len(node2idx)}")
-    print(list(node2idx.items())[-1])
-
-    data["train"] = get_edge_label_dict(data["train"], node2idx=node2idx, device="cpu")
-    data["test"] = get_edge_label_dict(data["test"], node2idx=node2idx, device="cpu")
-
-    print(f"[train] The number : {len(data['train']['edge'][0])}")
-    print(data["train"]["edge"][0][:5])
-    print(data["train"]["edge"][1][:5])
-    print(data["train"]["label"][:5])
-
-    print(data["train"]["edge"][0][-5:])
-    print(data["train"]["edge"][1][-5:])
-    print(data["train"]["label"][-5:])
-
-    print(f"[test] The number : {len(data['test']['edge'][0])}")
-    print(data["test"]["edge"][0][:5])
-    print(data["test"]["edge"][1][:5])
-    print(data["test"]["label"][:5])
-
-    print(data["test"]["edge"][0][-5:])
-    print(data["test"]["edge"][1][-5:])
-    print(data["test"]["label"][-5:])
