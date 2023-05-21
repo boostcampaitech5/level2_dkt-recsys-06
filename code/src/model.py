@@ -2,6 +2,7 @@ from .model_folder.model_mlp import MultiLayerPerceptronClass
 from .model_folder.model_lstm import LongShortTermMemory
 from .model_folder.model_lstmattn import LongShortTermMemoryAttention
 from .model_folder.model_bert import BidirectionalEncoderRepresentationsfromTransformers
+from .model_folder.model_lgcn import LightGCN
 
 
 def create_model(data: dict, settings: dict):
@@ -24,6 +25,8 @@ def create_model(data: dict, settings: dict):
         model = LongShortTermMemoryAttention(data, settings)
     elif settings["model_name"].lower() == "bert":
         model = BidirectionalEncoderRepresentationsfromTransformers(data, settings)
+    elif settings["model_name"].lower() == "lgcn":
+        model = LightGCN(data, settings)
     else:
         print("No model found ending program")
 
