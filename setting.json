@@ -43,7 +43,7 @@
     "predict_column": "answer_code",
 
 
-    "train_valid_split": 0.7,
+    "train_valid_split": 0.99,
 
 
     "model_name": "lstm",
@@ -56,8 +56,8 @@
 
 
     "adam": {
-        "learn_rate": 0.00002,
-        "weight_decay": 0.01
+        "learn_rate": 0.01,
+        "weight_decay": 0
     },
 
 
@@ -93,6 +93,11 @@
         "max_seq_len": 20,
         "n_layers": 2,
         "n_heads": 2
-    }
+    },
 
+    "lgcn": {
+        "embedding_dim": 64,
+        "num_layers": 1,
+        "alpha": 0
+    }
 }
