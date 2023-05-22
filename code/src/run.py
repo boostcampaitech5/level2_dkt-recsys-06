@@ -8,6 +8,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score
 from torch.nn.functional import sigmoid
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from transformers import get_linear_schedule_with_warmup
+import wandb
 
 
 class RMSELoss(nn.Module):
@@ -79,7 +80,7 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
             )
 
         # Change model state to evaluation
-        # model.eval()
+        model.eval()
 
         # Get average loss using validation set
         if not settings["is_graph_model"]:
@@ -100,6 +101,15 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
         save_settings.append_log(
             f"Epoch: {epoch + 1}\nTrain acc: {train_acc}\tTrain auc: {train_auc}\nValid acc: {valid_acc}\t Valid auc: {valid_auc}"
         )
+        if settings["wandb_activate"]:
+            wandb.log(
+                dict(
+                    train_acc_epoch=train_acc,
+                    train_auc_epoch=train_auc,
+                    valid_acc_epoch=valid_acc,
+                    valid_auc_epoch=valid_auc,
+                )
+            )
 
     print()
 

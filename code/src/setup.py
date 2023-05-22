@@ -5,6 +5,7 @@ import os
 import pandas as pd
 import random
 import torch
+import wandb
 
 
 # Settings file name
@@ -92,6 +93,28 @@ def set_basic_settings(settings: dict) -> None:
     )
 
     return
+
+
+def set_wandb(settings: dict) -> None:
+    if settings["wandb_activate"]:
+        wandb.login()
+        config = {
+            "model_name": settings["model_name"],
+            "loss_fn": settings["loss_fn"],
+            "optimizer": settings["optimizer"],
+            "scheduler": settings["scheduler"],
+            "epoch": settings["epoch"],
+            "batch_size": settings["batch_size"],
+            "num_workers": settings["num_workers"],
+            "train_valid_split": settings["train_valid_split"],
+        }
+        config.update(settings["adam"])
+        config.update(settings[settings["model_name"].lower()])
+        wandb.init(project="dkt", config=config)
+        wandb.run.name = settings["model_name"] + datetime.now().strftime(
+            "%Y%m%d_%H%M%S"
+        )
+        wandb.run.save()
 
 
 def get_unprocessed_data(folder_path: str, settings: dict) -> dict:
@@ -358,6 +381,11 @@ def setup() -> tuple[dict, dict, SaveSetting]:
     set_basic_settings(general_settings)
 
     print("Set General Setting!")
+    print()
+
+    print("Set Wandb..")
+    set_wandb(general_settings)
+    print("Done")
     print()
 
     print("Getting Unprocessed Data...")
