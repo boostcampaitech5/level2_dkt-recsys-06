@@ -46,13 +46,14 @@
     "train_valid_split": 0.99,
 
 
-    "model_name": "lstm",
+    "model_name": "lgcn",
     "loss_fn": "BCEWLL",
     "optimizer": "ADAM",
     "scheduler": "plateau",
     "epoch": 10,
     "batch_size": 16,
     "num_workers": 1,
+    "wandb_activate" : 1, 
 
 
     "adam": {
@@ -93,7 +94,7 @@
         "max_seq_len": 20,
         "n_layers": 2,
         "n_heads": 2
-    }
+    },
 
     "lgcn": {
         "embedding_dim": 64,
