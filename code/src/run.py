@@ -101,14 +101,15 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
         save_settings.append_log(
             f"Epoch: {epoch + 1}\nTrain acc: {train_acc}\tTrain auc: {train_auc}\nValid acc: {valid_acc}\t Valid auc: {valid_auc}"
         )
-        wandb.log(
-            dict(
-                train_acc_epoch=train_acc,
-                train_auc_epoch=train_auc,
-                valid_acc_epoch=valid_acc,
-                valid_auc_epoch=valid_auc,
+        if settings["wandb_activate"]:
+            wandb.log(
+                dict(
+                    train_acc_epoch=train_acc,
+                    train_auc_epoch=train_auc,
+                    valid_acc_epoch=valid_acc,
+                    valid_auc_epoch=valid_auc,
+                )
             )
-        )
 
     print()
 
