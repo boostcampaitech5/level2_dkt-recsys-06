@@ -69,15 +69,23 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
         model.train()
 
         # Get average loss while training
-        train_auc, train_acc = train_model(
-            dataloader, model, loss_fn, optimizer, scheduler, settings
-        )
+        if not settings["is_graph_model"]:
+            train_auc, train_acc = train_model(
+                dataloader, model, loss_fn, optimizer, scheduler, settings
+            )
+        else:
+            train_auc, train_acc = train_graph_model(
+                dataloader["train"], model, optimizer
+            )
 
         # Change model state to evaluation
-        model.eval()
+        # model.eval()
 
         # Get average loss using validation set
-        valid_auc, valid_acc = validate_model(dataloader, model, loss_fn, settings)
+        if not settings["is_graph_model"]:
+            valid_auc, valid_acc = validate_model(dataloader, model, loss_fn, settings)
+        else:
+            valid_auc, valid_acc = validate_graph_model(dataloader["valid"], model)
 
         if valid_auc > best_auc:
             best_auc = valid_auc
@@ -101,12 +109,20 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
     print("Getting Final Results...")
 
     # Get final results
-    train_df, train_final_auc, train_final_acc = get_df_result(
-        dataloader["train"], model, loss_fn, settings
-    )
-    valid_df, valid_final_auc, valid_final_acc = get_df_result(
-        dataloader["valid"], model, loss_fn, settings
-    )
+    if not settings["is_graph_model"]:
+        train_df, train_final_auc, train_final_acc = get_df_result(
+            dataloader["train"], model, loss_fn, settings
+        )
+        valid_df, valid_final_auc, valid_final_acc = get_df_result(
+            dataloader["valid"], model, loss_fn, settings
+        )
+    else:
+        train_df, train_final_auc, train_final_acc = graph_get_df_result(
+            dataloader["train"], model
+        )
+        valid_df, valid_final_auc, valid_final_acc = graph_get_df_result(
+            dataloader["valid"], model
+        )
 
     save_settings.save_train_valid(train_df, valid_df)
 
@@ -137,8 +153,10 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
     print("Predicting Results...")
 
     # Get predicted data for submission
-    predict_data = test_model(dataloader, model, settings)
-
+    if not settings["is_graph_model"]:
+        predict_data = test_model(dataloader, model, settings)
+    else:
+        predict_data = test_graph_model(dataloader["test"], model)
     print("Predicted Results!")
     print()
 
@@ -285,6 +303,48 @@ def test_model(dataloader: dict, model, settings) -> list:
     return predicted_list
 
 
+def train_graph_model(
+    train_data: dict, model: nn.Module, optimizer: torch.optim.Optimizer
+) -> tuple:
+    pred = model(train_data["edge"])
+    loss = model.link_pred_loss(pred=pred, edge_label=train_data["label"])
+
+    prob = model.predict_link(edge_index=train_data["edge"], prob=True)
+    prob = prob.detach().cpu().numpy()
+
+    label = train_data["label"].cpu().numpy()
+    acc = accuracy_score(y_true=label, y_pred=prob > 0.5)
+    auc = roc_auc_score(y_true=label, y_score=prob)
+
+    # backward
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    return auc, acc
+
+
+def validate_graph_model(valid_data: dict, model: nn.Module) -> tuple:
+    with torch.no_grad():
+        prob = model.predict_link(edge_index=valid_data["edge"], prob=True)
+        prob = prob.detach().cpu().numpy()
+
+        label = valid_data["label"].detach().cpu().numpy()
+        acc = accuracy_score(y_true=label, y_pred=prob > 0.5)
+        auc = roc_auc_score(y_true=label, y_score=prob)
+
+    return auc, acc
+
+
+def test_graph_model(test_data: dict, model: nn.Module) -> list:
+    model.eval()
+    with torch.no_grad():
+        pred = model.predict_link(edge_index=test_data["edge"], prob=True)
+
+    pred = pred.detach().cpu().numpy()
+    return list(pred)
+
+
 def get_df_result(dataloader, model, loss_fn, settings):
     """
     Gets prediction to get as output csv
@@ -328,5 +388,19 @@ def get_df_result(dataloader, model, loss_fn, settings):
     )
 
     save_df = pd.Series(total_preds)
+
+    return save_df, auc, acc
+
+
+def graph_get_df_result(dataloader: dict, model: nn.Module) -> tuple:
+    with torch.no_grad():
+        prob = model.predict_link(edge_index=dataloader["edge"], prob=True)
+        prob = prob.detach().cpu().numpy()
+
+        label = dataloader["label"].detach().cpu().numpy()
+        acc = accuracy_score(y_true=label, y_pred=prob > 0.5)
+        auc = roc_auc_score(y_true=label, y_score=prob)
+
+    save_df = pd.Series(prob)
 
     return save_df, auc, acc

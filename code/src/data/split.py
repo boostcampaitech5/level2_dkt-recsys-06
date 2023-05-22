@@ -101,35 +101,55 @@ def data_split(data: dict, settings: dict) -> None:
 
     print("Splitting dataset...")
 
-    # Group by user and combine all columns
-    column_list = data["train"].columns
-    data["train"] = (
-        data["train"]
-        .groupby("userID")
-        .apply(lambda x: {c: x[c].values for c in column_list if c != "userID"})
-    )
-    data["test"] = (
-        data["test"]
-        .groupby("userID")
-        .apply(lambda x: {c: x[c].values for c in column_list if c != "userID"})
-    )
+    if not settings["is_graph_model"]:
+        # Group by user and combine all columns
+        column_list = data["train"].columns
+        data["train"] = (
+            data["train"]
+            .groupby("userID")
+            .apply(lambda x: {c: x[c].values for c in column_list if c != "userID"})
+        )
+        data["test"] = (
+            data["test"]
+            .groupby("userID")
+            .apply(lambda x: {c: x[c].values for c in column_list if c != "userID"})
+        )
 
-    # Change data to numpy arrays
-    data["train"] = data["train"].to_numpy()
-    data["test"] = data["test"].to_numpy()
+        # Change data to numpy arrays
+        data["train"] = data["train"].to_numpy()
+        data["test"] = data["test"].to_numpy()
 
-    # Fix to default seed 0
-    # This is needed when ensembling both files
-    ## Having both files with different train and valid datasets will prevent us from making a loss estimate
-    random.seed(0)
+        # Fix to default seed 0
+        # This is needed when ensembling both files
+        ## Having both files with different train and valid datasets will prevent us from making a loss estimate
+        random.seed(0)
 
-    # Shuffle the train dataset
-    random.shuffle(data["train"])
+        # Shuffle the train dataset randomly
+        random.shuffle(data["train"])
 
-    # Divide train data and valid data by ratio
-    train_size = int(len(data["train"]) * settings["train_valid_split"])
-    data["valid"] = data["train"][train_size:]
-    data["train"] = data["train"][:train_size]
+        # Divide data by ratio
+        train_size = int(len(data["train"]) * settings["train_valid_split"])
+        data["valid"] = data["train"][train_size:]
+        data["train"] = data["train"][:train_size]
+
+    else:
+        np.random.seed(0)
+
+        # size : # of edge of train
+        size_all = len(data["train"]["label"])
+        train_size = int(size_all * settings["train_valid_split"])
+
+        edge_ids = np.arange(size_all)
+        edge_ids = np.random.permutation(edge_ids)
+
+        train_edge_ids = edge_ids[:train_size]
+        valid_edge_ids = edge_ids[train_size:]
+
+        edge, label = data["train"]["edge"], data["train"]["label"]
+        # label = label.to("cpu").detach().numpy()
+
+        data["train"] = dict(edge=edge[:, train_edge_ids], label=label[train_edge_ids])
+        data["valid"] = dict(edge=edge[:, valid_edge_ids], label=label[valid_edge_ids])
 
     print("Splitted Data!")
     print()
@@ -148,6 +168,11 @@ def create_datasets(data: dict, settings: dict) -> dict:
     Returns:
         dataset(dict): Dictionary containing loaded datasets
     """
+
+    # For graph_based models, omit this function
+    if settings["is_graph_model"]:
+        dataset = {"train": data["train"], "valid": data["valid"], "test": data["test"]}
+        return dataset
 
     print("Creating Datasets!")
 
@@ -178,29 +203,33 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
     print("Creating Dataloader...")
 
     dataloader = dict()
-
-    # Create dataloader
-    dataloader["train"] = DataLoader(
-        dataset["train"],
-        batch_size=settings["batch_size"],
-        shuffle=True,
-        num_workers=settings["num_workers"],
-        pin_memory=False,
-    )
-    dataloader["valid"] = DataLoader(
-        dataset["valid"],
-        batch_size=settings["batch_size"],
-        shuffle=False,
-        num_workers=settings["num_workers"],
-        pin_memory=False,
-    )
-    dataloader["test"] = DataLoader(
-        dataset["test"],
-        batch_size=settings["batch_size"],
-        shuffle=False,
-        num_workers=settings["num_workers"],
-        pin_memory=False,
-    )
+    if not settings["is_graph_model"]:
+        # Create dataloader
+        dataloader["train"] = DataLoader(
+            dataset["train"],
+            batch_size=settings["batch_size"],
+            shuffle=True,
+            num_workers=settings["num_workers"],
+            pin_memory=False,
+        )
+        dataloader["valid"] = DataLoader(
+            dataset["valid"],
+            batch_size=settings["batch_size"],
+            shuffle=False,
+            num_workers=settings["num_workers"],
+            pin_memory=False,
+        )
+        dataloader["test"] = DataLoader(
+            dataset["test"],
+            batch_size=settings["batch_size"],
+            shuffle=False,
+            num_workers=settings["num_workers"],
+            pin_memory=False,
+        )
+    else:
+        dataloader["train"] = dataset["train"]
+        dataloader["valid"] = dataset["valid"]
+        dataloader["test"] = dataset["test"]
 
     print("Created Dataloader!")
     print()

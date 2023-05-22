@@ -55,7 +55,18 @@ def set_basic_settings(settings: dict) -> None:
     # Get seed from settings
     seed = settings["seed"]
 
-    # Apply seed to all randomization
+    # Is graph?
+    settings["is_graph_model"] = settings["model_name"] == "lgcn"
+
+    if settings["is_graph_model"]:
+        # Set parameter of model:lgcn alpha
+        settings["lgcn"]["alpha"] = (
+            None if settings["lgcn"]["alpha"] == 0 else settings["lgcn"]["alpha"]
+        )
+        # Set weight decay = 0
+        settings["adam"]["weight_decay"] = 0
+
+    # Apply settings to all randomization
     # All results will be fixed
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
