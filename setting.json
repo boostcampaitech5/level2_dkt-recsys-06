@@ -12,8 +12,8 @@
     },
 
     "file_name": {
-        "train": "/opt/ml/input/data/train_data",
-        "test": "/opt/ml/input/data/test_data"
+        "train": "train_data",
+        "test": "test_data"
     },
 
 
@@ -40,7 +40,7 @@
     "predict_column": "answerCode",
 
 
-    "train_valid_split": 0.995,
+    "train_valid_split": 0.99,
 
 
     "model_name": "lgcn",
@@ -96,6 +96,6 @@
     "lgcn": {
         "embedding_dim": 64,
         "num_layers": 1,
-        "alpha": 0.5
+        "alpha": 0
     }  
 }

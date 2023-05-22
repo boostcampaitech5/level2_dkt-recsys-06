@@ -1,6 +1,5 @@
 import pandas as pd
-
-# from .data_modify import age_average_fill_na, average_fill_na, create_feature_big_tag
+from .data_modify import age_average_fill_na, average_fill_na, create_feature_big_tag
 from sklearn.preprocessing import LabelEncoder
 import torch
 

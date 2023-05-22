@@ -63,15 +63,13 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
 
     best_auc = -1
 
-    is_graph_model = settings["model_name"].lower() == "lgcn"
-
     # Set epoch for training
     for epoch in range(settings["epoch"]):
         # Change model state to train
-        # model.train()
+        model.train()
 
         # Get average loss while training
-        if not is_graph_model:
+        if not settings["is_graph_model"]:
             train_auc, train_acc = train_model(
                 dataloader, model, loss_fn, optimizer, scheduler, settings
             )
@@ -84,7 +82,7 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
         # model.eval()
 
         # Get average loss using validation set
-        if not is_graph_model:
+        if not settings["is_graph_model"]:
             valid_auc, valid_acc = validate_model(dataloader, model, loss_fn, settings)
         else:
             valid_auc, valid_acc = validate_graph_model(dataloader["valid"], model)
@@ -111,7 +109,7 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
     print("Getting Final Results...")
 
     # Get final results
-    if not is_graph_model:
+    if not settings["is_graph_model"]:
         train_df, train_final_auc, train_final_acc = get_df_result(
             dataloader["train"], model, loss_fn, settings
         )
@@ -155,7 +153,7 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
     print("Predicting Results...")
 
     # Get predicted data for submission
-    if not is_graph_model:
+    if not settings["is_graph_model"]:
         predict_data = test_model(dataloader, model, settings)
     else:
         predict_data = test_graph_model(dataloader["test"], model)
