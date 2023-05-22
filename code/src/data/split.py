@@ -106,13 +106,13 @@ def data_split(data: dict, settings: dict) -> None:
         column_list = data["train"].columns
         data["train"] = (
             data["train"]
-            .groupby("userID")
-            .apply(lambda x: {c: x[c].values for c in column_list if c != "userID"})
+            .groupby("user_id")
+            .apply(lambda x: {c: x[c].values for c in column_list if c != "user_id"})
         )
         data["test"] = (
             data["test"]
-            .groupby("userID")
-            .apply(lambda x: {c: x[c].values for c in column_list if c != "userID"})
+            .groupby("user_id")
+            .apply(lambda x: {c: x[c].values for c in column_list if c != "user_id"})
         )
 
         # Change data to numpy arrays
