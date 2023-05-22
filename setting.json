@@ -30,12 +30,12 @@
         "assessmentItemID"
     ],
 
-    "train_columns": [
+    "selective_train_columns": [
         "testId",
         "KnowledgeTag"
     ],
 
-    "embedding_columns": [
+    "selective_embedding_columns": [
         "testId",
         "KnowledgeTag"
     ],

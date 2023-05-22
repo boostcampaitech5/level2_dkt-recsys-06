@@ -15,6 +15,7 @@ class DKTDataset(torch.utils.data.Dataset):
             data(np.ndarray): Numpy array of processed data
             settings(dict): Dictionary containing the settings
         """
+
         self.data = data
 
         # Fixed data length
@@ -27,6 +28,19 @@ class DKTDataset(torch.utils.data.Dataset):
         self.index_column = settings["embedding_columns"]
 
     def __getitem__(self, index: int) -> dict:
+        """
+        Gets data in index
+        Processes the data to return a dict with each column as the index
+
+        Parameters:
+            data(np.ndarray): Numpy array of processed data
+            settings(dict): Dictionary containing the settings
+
+        Returns:
+            row_data(dict): Dictionary containing the data divided by the column
+        """
+
+        # Load from data
         row = self.data[index]
 
         # Load from data
@@ -35,6 +49,7 @@ class DKTDataset(torch.utils.data.Dataset):
             for i, v in row.items()
             if i in self.index_column
         }
+
         # Leave the predict column alone
         row_data[self.predict_column] = torch.tensor(
             row[self.predict_column], dtype=torch.int
@@ -80,10 +95,12 @@ def data_split(data: dict, settings: dict) -> None:
     Splits train data to train data and validation data
 
     Parameters:
-        data(dict): Dictionary containing the unprocessed data
+        data(dict): Dictionary containing the processed data
         settings(dict): Dictionary containing the settings
     """
+
     print("Splitting dataset...")
+
     # Group by user and combine all columns
     column_list = data["train"].columns
     data["train"] = (
@@ -106,10 +123,10 @@ def data_split(data: dict, settings: dict) -> None:
     ## Having both files with different train and valid datasets will prevent us from making a loss estimate
     random.seed(0)
 
-    # Shuffle the train dataset randomly
+    # Shuffle the train dataset
     random.shuffle(data["train"])
 
-    # Divide data by ratio
+    # Divide train data and valid data by ratio
     train_size = int(len(data["train"]) * settings["train_valid_split"])
     data["valid"] = data["train"][train_size:]
     data["train"] = data["train"][:train_size]
@@ -131,6 +148,7 @@ def create_datasets(data: dict, settings: dict) -> dict:
     Returns:
         dataset(dict): Dictionary containing loaded datasets
     """
+
     print("Creating Datasets!")
 
     dataset = dict()

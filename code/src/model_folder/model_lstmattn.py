@@ -6,23 +6,40 @@ from .model_base.model_embed_base import EmbedLayer
 
 
 class LongShortTermMemoryAttention(nn.Module):
+    """
+    LSTM Attention model
+    """
+
     def __init__(self, settings):
+        """
+        Initializes LSTM Attention Model
+
+        Parameters:
+            settings(dict): Dictionary containing the settings
+        """
+
         super().__init__()
 
+        # Get settings
         self.embedding_dim = settings["lstm_attn"]["embedding_dim"]
         self.input_dim = settings["lstm_attn"]["input_dim"]
-        self.max_label_dict = settings["max_label_dict"]
+        self.label_len_dict = settings["label_len_dict"]
         self.n_layers = settings["lstm_attn"]["n_layers"]
         self.output_dim = settings["lstm_attn"]["output_dim"]
 
-        self.embed_layer = EmbedLayer(
-            self.embedding_dim, self.input_dim, self.max_label_dict
-        )
+        # Create embedding layer
+        self.embed_layer = EmbedLayer(self.embedding_dim, self.label_len_dict)
 
+        # Create input linear layer
+        embed_output_dim = self.embed_layer.get_output_dim()
+        self.input_lin = nn.Linear(embed_output_dim, self.input_dim)
+
+        # Create LSTM layer
         self.lstm = nn.LSTM(
             self.input_dim, self.output_dim, self.n_layers, batch_first=True
         )
 
+        # Create Attention layer
         self.n_heads = settings["lstm_attn"]["n_heads"]
         self.drop_out = settings["lstm_attn"]["drop_out"]
 
@@ -38,13 +55,20 @@ class LongShortTermMemoryAttention(nn.Module):
 
         self.attn = BertEncoder(self.config)
 
+        # Create dense layer
         self.output_lin = nn.Linear(self.output_dim, 1)
 
     def forward(self, x):
+        # Get data input size
         input_size = len(x["interaction"])
 
-        input_x = self.embed_layer(x)
+        # Embedding layer
+        embedded_x = self.embed_layer(x)
 
+        # Input linear layer
+        input_x = self.input_lin(embedded_x)
+
+        # LSTM layer
         output_x, _ = self.lstm(input_x)
 
         output_x = output_x.contiguous().view(input_size, -1, self.output_dim)
@@ -54,11 +78,13 @@ class LongShortTermMemoryAttention(nn.Module):
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
         head_mask = [None] * self.n_layers
 
+        # Attention layer
         encoded_layers = self.attn(
             output_x, extended_attention_mask, head_mask=head_mask
         )
         sequence_output = encoded_layers[-1]
 
+        # Dense layer
         y_hat = self.output_lin(sequence_output).view(input_size, -1)
 
         return y_hat

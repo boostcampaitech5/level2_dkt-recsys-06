@@ -6,19 +6,35 @@ from .model_base.model_embed_base import EmbedLayer
 
 
 class BidirectionalEncoderRepresentationsfromTransformers(nn.Module):
+    """
+    BERT model
+    """
+
     def __init__(self, settings):
+        """
+        Initializes BERT Model
+
+        Parameters:
+            settings(dict): Dictionary containing the settings
+        """
+
         super().__init__()
 
+        # Get settings
         self.embedding_dim = settings["bert"]["embedding_dim"]
         self.input_dim = settings["bert"]["input_dim"]
-        self.max_label_dict = settings["max_label_dict"]
+        self.label_len_dict = settings["label_len_dict"]
         self.n_layers = settings["bert"]["n_layers"]
         self.n_heads = settings["bert"]["n_heads"]
 
-        self.embed_layer = EmbedLayer(
-            self.embedding_dim, self.input_dim, self.max_label_dict
-        )
+        # Create embedding layer
+        self.embed_layer = EmbedLayer(self.embedding_dim, self.label_len_dict)
 
+        # Create input linear layer
+        embed_output_dim = self.embed_layer.get_output_dim()
+        self.input_lin = nn.Linear(embed_output_dim, self.input_dim)
+
+        # Create BERT layer
         self.config = BertConfig(
             3,  # not used
             hidden_size=self.input_dim,
@@ -29,15 +45,26 @@ class BidirectionalEncoderRepresentationsfromTransformers(nn.Module):
 
         self.encoder = BertModel(self.config)
 
+        # Create dense layer
         self.output_lin = nn.Linear(self.input_dim, 1)
 
+        return
+
     def forward(self, x):
+        # Get data input size
         input_size = len(x["interaction"])
 
-        input_x = self.embed_layer(x)
+        # Embedding layer
+        embedded_x = self.embed_layer(x)
 
+        # Input linear layer
+        input_x = self.input_lin(embedded_x)
+
+        # BERT layer
         encoded_layers = self.encoder(inputs_embeds=input_x, attention_mask=x["mask"])
         out = encoded_layers[0]
+
+        # Dense layer
         out = out.contiguous().view(input_size, -1, self.input_dim)
         out = self.output_lin(out).view(input_size, -1)
 

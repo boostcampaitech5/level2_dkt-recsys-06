@@ -3,34 +3,50 @@ import torch.nn as nn
 
 
 class EmbedLayer(nn.Module):
-    def __init__(self, embedding_dim, input_dim, max_label_dict):
+    """
+    Module used to create embedding's for each column
+    """
+
+    def __init__(self, embedding_dim: int, label_len_dict: dict) -> None:
+        """
+        Initializes SaveSetting class
+
+        Parameters:
+            embedding_dim(int): Embedding layer output dimension
+            label_len_dict(dict): Dictionary of label lengths
+        """
+
         super().__init__()
 
+        # Get settings
         self.embedding_dim = embedding_dim
-        self.input_dim = input_dim
-        self.max_label_dict = max_label_dict
+        self.label_len_dict = label_len_dict
 
-        # embedding layers
+        # Embedding layers
         self.embedding = nn.ModuleDict(
             {
                 i: nn.Embedding(v + 1, self.embedding_dim)
-                for i, v in self.max_label_dict.items()
+                for i, v in self.label_len_dict.items()
             }
         )
 
+        # Add interaction layers
         self.embedding["interaction"] = nn.Embedding(3, self.embedding_dim)
+        self.label_len_dict["interaction"] = 3
 
-        self.max_label_dict["interaction"] = 3
-
-        self.input_lin = nn.Linear(
-            len(self.embedding) * self.embedding_dim, self.input_dim
-        )
+        return
 
     def forward(self, x):
+        # Embed all embedding columns and concat them
         embedded_x = torch.cat(
-            [self.embedding[i](x[i].int()) for i in list(self.max_label_dict)], dim=2
+            [self.embedding[i](x[i].int()) for i in list(self.label_len_dict)], dim=2
         )
 
-        input_x = self.input_lin(embedded_x)
+        return embedded_x
 
-        return input_x
+    def get_output_dim(self):
+        """
+        Returns total output dim of embedding
+        """
+
+        return len(self.embedding) * self.embedding_dim
