@@ -120,12 +120,12 @@ def process_lgcn(data: dict) -> None:
 
     # Among duplicate user_id and assessmentItemID, only the last one is deleted.
     data["concat_data"].drop_duplicates(
-        subset=["userID", "assessmentItemID"], keep="last", inplace=True
+        subset=["user_id", "question_id"], keep="last", inplace=True
     )
 
     # Training data, test data reclassification = separate_data
-    data["train"] = data["concat_data"][data["concat_data"]["answerCode"] >= 0]
-    data["test"] = data["concat_data"][data["concat_data"]["answerCode"] < 0]
+    data["train"] = data["concat_data"][data["concat_data"]["answer_code"] >= 0]
+    data["test"] = data["concat_data"][data["concat_data"]["answer_code"] < 0]
 
     return
 
@@ -141,8 +141,8 @@ def make_nodes(data_concat: pd.DataFrame) -> dict:
         dict: node_to_idx
     """
     user_id, item_id = (
-        sorted(data_concat["userID"].unique().tolist()),
-        sorted(data_concat["assessmentItemID"].unique().tolist()),
+        sorted(data_concat["user_id"].unique().tolist()),
+        sorted(data_concat["question_id"].unique().tolist()),
     )
     # merge user_id & item_id
     node_id = user_id + item_id
@@ -168,7 +168,7 @@ def get_edge_label_dict(data: pd.DataFrame, node2idx: dict, device: str) -> dict
 
     # Label Encoding & Append edge and label
     for user_id, item_id, answer_code in zip(
-        data["userID"], data["assessmentItemID"], data["answerCode"]
+        data["user_id"], data["question_id"], data["answer_code"]
     ):
         edges.append([node2idx[user_id], node2idx[item_id]])
         labels.append(answer_code)
