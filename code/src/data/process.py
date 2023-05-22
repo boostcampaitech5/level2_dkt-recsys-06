@@ -1,5 +1,5 @@
 import pandas as pd
-from .data_modify import age_average_fill_na, average_fill_na, create_feature_big_tag
+from .data_modify import age_average_fill_na, average_fill_na, create_feature_test_cat
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -63,11 +63,11 @@ def process_lstm(data: dict) -> None:
     """
 
     # Order data by user and time
-    data["train"] = data["train"].sort_values(by=["userID", "Timestamp"], axis=0)
-    data["test"] = data["test"].sort_values(by=["userID", "Timestamp"], axis=0)
+    data["train"] = data["train"].sort_values(by=["user_id", "timestamp"], axis=0)
+    data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
-    # Create a feature called big_tag
-    create_feature_big_tag(data)
+    # Create a feature called test_cat
+    create_feature_test_cat(data)
 
     return
 
@@ -81,11 +81,11 @@ def process_lstm_attn(data) -> None:
     """
 
     # Order data by user and time
-    data["train"] = data["train"].sort_values(by=["userID", "Timestamp"], axis=0)
-    data["test"] = data["test"].sort_values(by=["userID", "Timestamp"], axis=0)
+    data["train"] = data["train"].sort_values(by=["user_id", "timestamp"], axis=0)
+    data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
-    # Create a feature called big_tag
-    create_feature_big_tag(data)
+    # Create a feature called test_cat
+    create_feature_test_cat(data)
 
     return
 
@@ -99,11 +99,11 @@ def process_bert(data) -> None:
     """
 
     # Order data by user and time
-    data["train"] = data["train"].sort_values(by=["userID", "Timestamp"], axis=0)
-    data["test"] = data["test"].sort_values(by=["userID", "Timestamp"], axis=0)
+    data["train"] = data["train"].sort_values(by=["user_id", "timestamp"], axis=0)
+    data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
-    # Create a feature called big_tag
-    create_feature_big_tag(data)
+    # Create a feature called test_cat
+    create_feature_test_cat(data)
 
     return
 

@@ -12,8 +12,8 @@
     },
 
     "file_name": {
-        "train": "train_data",
-        "test": "test_data"
+        "train": "2023-05-22_train_data",
+        "test": "2023-05-22_test_data"
     },
 
 
@@ -21,26 +21,26 @@
     "device": "cuda",
 
     "fixed_train_columns": [
-        "userID",
-        "assessmentItemID",
-        "answerCode"
+        "user_id",
+        "question_id",
+        "answer_code"
     ],
 
     "fixed_embedding_columns": [
-        "assessmentItemID"
+        "question_id"
     ],
 
     "selective_train_columns": [
-        "testId",
-        "KnowledgeTag"
+        "test_id",
+        "knowledge_tag"
     ],
 
     "selective_embedding_columns": [
-        "testId",
-        "KnowledgeTag"
+        "test_id",
+        "knowledge_tag"
     ],
 
-    "predict_column": "answerCode",
+    "predict_column": "answer_code",
 
 
     "train_valid_split": 0.7,
