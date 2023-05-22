@@ -1,53 +1,63 @@
 import torch
 import torch.nn as nn
 
+from .model_base.model_embed_base import EmbedLayer
+
 
 class LongShortTermMemory(nn.Module):
-    def __init__(self, data, settings):
+    """
+    LSTM model
+    """
+
+    def __init__(self, settings: dict) -> None:
+        """
+        Initializes LSTM Model
+
+        Parameters:
+            settings(dict): Dictionary containing the settings
+        """
+
         super().__init__()
 
-        self.device = settings["device"]
-
-        self.hidden_dim = settings["lstm"]["hidden_dim"]
-        self.input_embed_dim = settings["lstm"]["input_dim"]
-        self.lstm_input_dim = settings["lstm"]["lstm_input_dim"]
+        # Get settings
+        self.embedding_dim = settings["lstm"]["embedding_dim"]
+        self.input_dim = settings["lstm"]["input_dim"]
         self.n_layers = settings["lstm"]["n_layers"]
-        self.n_input_list = data["idx"]
+        self.output_dim = settings["lstm"]["output_dim"]
+        self.label_len_dict = settings["label_len_dict"]
 
-        # embedding layers
-        self.embedding = dict()
-        self.embedding["interaction"] = nn.Embedding(3, self.input_embed_dim).to(
-            self.device
-        )
-        for i, v in self.n_input_list.items():
-            self.embedding[i] = nn.Embedding(v + 1, self.input_embed_dim).to(
-                self.device
-            )
+        # Create embedding layer
+        self.embed_layer = EmbedLayer(self.embedding_dim, self.label_len_dict)
 
-        self.n_input_list["interaction"] = 3
+        # Create input linear layer
+        embed_output_dim = self.embed_layer.get_output_dim()
+        self.input_lin = nn.Linear(embed_output_dim, self.input_dim)
 
-        self.input_lin = nn.Linear(
-            len(self.embedding) * self.input_embed_dim, self.lstm_input_dim
-        ).to(self.device)
-        self.output_lin = nn.Linear(self.hidden_dim, 1).to(self.device)
-
+        # Create LSTM layer
         self.lstm = nn.LSTM(
-            self.lstm_input_dim, self.hidden_dim, self.n_layers, batch_first=True
-        ).to(self.device)
+            self.input_dim, self.output_dim, self.n_layers, batch_first=True
+        )
+
+        # Create dense layer
+        self.output_lin = nn.Linear(self.output_dim, 1)
+
+        return
 
     def forward(self, x):
+        # Get data input size
         input_size = len(x["interaction"])
 
-        embedded_x = torch.cat(
-            [self.embedding[i](x[i].int()) for i in list(self.n_input_list)], dim=2
-        )
+        # Embedding layer
+        embedded_x = self.embed_layer(x)
 
+        # Input linear layer
         input_x = self.input_lin(embedded_x)
 
+        # LSTM layer
         output_x, _ = self.lstm(input_x)
 
-        output_x = output_x.contiguous().view(input_size, -1, self.hidden_dim)
-
+        # Dense layer
+        output_x = output_x.contiguous().view(input_size, -1, self.output_dim)
         y_hat = self.output_lin(output_x).view(input_size, -1)
 
         return y_hat
