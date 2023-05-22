@@ -26,7 +26,7 @@ def create_model(data: dict, settings: dict):
     elif settings["model_name"].lower() == "lstm_attn":
         model = LongShortTermMemoryAttention(settings)
     elif settings["model_name"].lower() == "bert":
-        model = BidirectionalEncoderRepresentationsfromTransformers(data, settings)
+        model = BidirectionalEncoderRepresentationsfromTransformers(settings)
     elif settings["model_name"].lower() == "lgcn":
         model = LightGCN(
             num_nodes=data["num_nodes"],
@@ -34,7 +34,6 @@ def create_model(data: dict, settings: dict):
             num_layers=settings["lgcn"]["num_layers"],
             alpha=settings["lgcn"]["alpha"],
         )
-        model.to(settings["device"])
     else:
         print("No model found ending program")
 
