@@ -351,7 +351,7 @@ class SaveSetting:
         return
 
 
-def setup() -> tuple[dict, dict, SaveSetting]:
+def setup(silence=False) -> tuple[dict, dict, SaveSetting]:
     """
     Setups settings and returns setting/unprocessed/saving data
 
@@ -360,7 +360,10 @@ def setup() -> tuple[dict, dict, SaveSetting]:
         settings(dict): Dictionary containing the settings
         save_settings(SaveSetting): Class used to save files(log, model, result)
     """
-
+    # print disable
+    if silence:
+        global print 
+        print = str
     # Changes directory to parent directory
     os.chdir("..")
 

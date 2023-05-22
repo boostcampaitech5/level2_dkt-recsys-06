@@ -90,7 +90,7 @@ class DKTDataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
-def data_split(data: dict, settings: dict) -> None:
+def data_split(data: dict, settings: dict, silence=False) -> None:
     """
     Splits train data to train data and validation data
 
@@ -98,7 +98,10 @@ def data_split(data: dict, settings: dict) -> None:
         data(dict): Dictionary containing the processed data
         settings(dict): Dictionary containing the settings
     """
-
+    # print disable
+    if silence:
+        global print 
+        print = str
     print("Splitting dataset...")
 
     if not settings["is_graph_model"]:
@@ -157,7 +160,7 @@ def data_split(data: dict, settings: dict) -> None:
     return
 
 
-def create_datasets(data: dict, settings: dict) -> dict:
+def create_datasets(data: dict, settings: dict,  silence=False) -> dict:
     """
     Creates datasets using the train, valid, test data
 
@@ -168,7 +171,10 @@ def create_datasets(data: dict, settings: dict) -> dict:
     Returns:
         dataset(dict): Dictionary containing loaded datasets
     """
-
+    # print disable
+    if silence:
+        global print 
+        print = str
     # For graph_based models, omit this function
     if settings["is_graph_model"]:
         dataset = {"train": data["train"], "valid": data["valid"], "test": data["test"]}
@@ -189,7 +195,7 @@ def create_datasets(data: dict, settings: dict) -> dict:
     return dataset
 
 
-def create_dataloader(dataset: dict, settings: dict) -> dict:
+def create_dataloader(dataset: dict, settings: dict,  silence=False) -> dict:
     """
     Creates dataloader from datasets.
 
@@ -199,7 +205,10 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
     Returns:
         dataloader(dict): Dictionary loaded dataloaders.
     """
-
+    # print disable
+    if silence:
+        global print 
+        print = str
     print("Creating Dataloader...")
 
     dataloader = dict()

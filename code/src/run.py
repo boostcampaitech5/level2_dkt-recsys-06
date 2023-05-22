@@ -22,7 +22,7 @@ class RMSELoss(nn.Module):
         return loss
 
 
-def run_model(dataloader: dict, settings: dict, model, save_settings):
+def run_model(dataloader: dict, settings: dict, model, save_settings, tune=False,silence=False):
     """
     Runs model through train, valid, and submit.
 
@@ -31,7 +31,11 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
         settings(dict): Dictionary containing the settings.
         model(nn.Module): Model used to train
     """
-
+    # print disable
+    if silence:
+        global print 
+        print = str
+    
     # Set loss function
     if settings["loss_fn"].lower() == "rmse":
         loss_fn = RMSELoss()
@@ -110,7 +114,8 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
                     valid_auc_epoch=valid_auc,
                 )
             )
-
+    if tune:
+        return valid_auc
     print()
 
     print("Trained Model!")
