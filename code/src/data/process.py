@@ -4,48 +4,50 @@ from sklearn.preprocessing import LabelEncoder
 import torch
 
 
-def index_data(data: dict, settings: dict) -> dict:
+def index_data(data: dict, settings: dict) -> None:
     """
-    Labels data to be used in embedding layers
+    Labels data to be used in the embedding layer
 
     Parameters:
-        data(dict): Dictionary containing processed dataframes.
-        settings(dict): Dictionary containing the settings.
-
-    Returns:
-        idx(dict): Dictionary containing the length of each columns
-                   Used in making embedded layers
+        data(dict): Dictionary containing processed dataframes
+        settings(dict): Dictionary containing the settings
     """
-    idx = dict()
 
-    # Loop for each indexing columns
-    for index_column in settings["index_columns"]:
-        # Create label encoder and fit values to it
+    # Saves length of labels per column
+    label_len_dict = dict()
+
+    # Loop for each labeling column
+    for col in settings["embedding_columns"]:
+        # Create label encoder and fit unique values
         le = LabelEncoder()
-        unique_value = data["train"][index_column].unique().tolist() + ["unknown"]
+        unique_value = data["train"][col].unique().tolist() + ["unknown"]
         le.fit(unique_value)
 
         # Change test dataset to fit labels
-        data["test"][index_column] = data["test"][index_column].apply(
+        # If the label doesn't exist then set label to unknown
+        data["test"][col] = data["test"][col].apply(
             lambda x: x if str(x) in le.classes_ else "unknown"
         )
 
-        # Map the labels to values
-        data["train"][index_column] = le.transform(data["train"][index_column])
-        data["test"][index_column] = le.transform(data["test"][index_column])
+        # Map the labels
+        data["train"][col] = le.transform(data["train"][col])
+        data["test"][col] = le.transform(data["test"][col])
 
-        # Save length of label for future use
-        idx[index_column] = len(unique_value)
+        # Save the length of label
+        label_len_dict[col] = len(unique_value)
 
-    return idx
+    # Save the dictionary in the settings dictionary
+    settings["label_len_dict"] = label_len_dict
+
+    return
 
 
 def process_mlp(data: dict) -> None:
     """
-    Processes data for MLP training.
+    Processes data for the MLP model
 
     Parameters:
-        data(dict): Dictionary containing the unprocessed dataframes.
+        data(dict): Dictionary containing the unprocessed dataframes
     """
 
     average_fill_na(data["user_data"], "age")
@@ -54,30 +56,54 @@ def process_mlp(data: dict) -> None:
 
 
 def process_lstm(data: dict) -> None:
+    """
+    Processes data for the LSTM model
+
+    Parameters:
+        data(dict): Dictionary containing the unprocessed dataframes
+    """
+
     # Order data by user and time
     data["train"] = data["train"].sort_values(by=["userID", "Timestamp"], axis=0)
     data["test"] = data["test"].sort_values(by=["userID", "Timestamp"], axis=0)
 
+    # Create a feature called big_tag
     create_feature_big_tag(data)
 
     return
 
 
 def process_lstm_attn(data) -> None:
+    """
+    Processes data for the LSTM attention model
+
+    Parameters:
+        data(dict): Dictionary containing the unprocessed dataframes
+    """
+
     # Order data by user and time
     data["train"] = data["train"].sort_values(by=["userID", "Timestamp"], axis=0)
     data["test"] = data["test"].sort_values(by=["userID", "Timestamp"], axis=0)
 
+    # Create a feature called big_tag
     create_feature_big_tag(data)
 
     return
 
 
 def process_bert(data) -> None:
+    """
+    Processes data for the BERT model
+
+    Parameters:
+        data(dict): Dictionary containing the unprocessed dataframes
+    """
+
     # Order data by user and time
     data["train"] = data["train"].sort_values(by=["userID", "Timestamp"], axis=0)
     data["test"] = data["test"].sort_values(by=["userID", "Timestamp"], axis=0)
 
+    # Create a feature called big_tag
     create_feature_big_tag(data)
 
     return
@@ -156,12 +182,13 @@ def get_edge_label_dict(data: pd.DataFrame, node2idx: dict, device: str) -> dict
 
 def process_data(data: dict, settings: dict) -> None:
     """
-    Merges / Drops columns / Indexes from data.
+    Merges / Drops columns / Indexes from data in order
 
     Parameters:
-        data(dict): Dictionary containing the unprocessed dataframes.
-        settings(dict): Dictionary containing the settings.
+        data(dict): Dictionary containing the unprocessed dataframes
+        settings(dict): Dictionary containing the settings
     """
+
     # Modify data
     print("Modifing Data...")
 
@@ -197,8 +224,8 @@ def process_data(data: dict, settings: dict) -> None:
     print("Dropping Columns...")
 
     # Drop unwanted columns
-    data["train"] = data["train"][settings["choose_columns"]]
-    data["test"] = data["test"][settings["choose_columns"]]
+    data["train"] = data["train"][settings["train_columns"]]
+    data["test"] = data["test"][settings["train_columns"]]
 
     print("Dropped Columns!")
     print()
@@ -206,7 +233,7 @@ def process_data(data: dict, settings: dict) -> None:
     print("Indexing Columns...")
 
     # Label columns
-    data["idx"] = index_data(data, settings)
+    index_data(data, settings)
 
     print("Indexed Columns!")
     print()

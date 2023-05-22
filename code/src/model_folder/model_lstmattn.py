@@ -2,78 +2,89 @@ import torch
 import torch.nn as nn
 from transformers.models.bert.modeling_bert import BertConfig, BertEncoder, BertModel
 
+from .model_base.model_embed_base import EmbedLayer
+
 
 class LongShortTermMemoryAttention(nn.Module):
-    def __init__(self, data, settings):
+    """
+    LSTM Attention model
+    """
+
+    def __init__(self, settings):
+        """
+        Initializes LSTM Attention Model
+
+        Parameters:
+            settings(dict): Dictionary containing the settings
+        """
+
         super().__init__()
 
-        self.device = settings["device"]
-
-        self.hidden_dim = settings["lstm_attn"]["hidden_dim"]
-        self.input_embed_dim = settings["lstm_attn"]["input_dim"]
-        self.lstm_input_dim = settings["lstm_attn"]["lstm_input_dim"]
+        # Get settings
+        self.embedding_dim = settings["lstm_attn"]["embedding_dim"]
+        self.input_dim = settings["lstm_attn"]["input_dim"]
+        self.label_len_dict = settings["label_len_dict"]
         self.n_layers = settings["lstm_attn"]["n_layers"]
-        self.n_input_list = data["idx"]
+        self.output_dim = settings["lstm_attn"]["output_dim"]
 
-        # embedding layers
-        self.embedding = dict()
-        self.embedding["interaction"] = nn.Embedding(3, self.input_embed_dim).to(
-            self.device
-        )
-        for i, v in self.n_input_list.items():
-            self.embedding[i] = nn.Embedding(v + 1, self.input_embed_dim).to(
-                self.device
-            )
+        # Create embedding layer
+        self.embed_layer = EmbedLayer(self.embedding_dim, self.label_len_dict)
 
-        self.n_input_list["interaction"] = 3
+        # Create input linear layer
+        embed_output_dim = self.embed_layer.get_output_dim()
+        self.input_lin = nn.Linear(embed_output_dim, self.input_dim)
 
-        self.input_lin = nn.Linear(
-            len(self.embedding) * self.input_embed_dim, self.lstm_input_dim
-        ).to(self.device)
-        self.output_lin = nn.Linear(self.hidden_dim, 1).to(self.device)
-
+        # Create LSTM layer
         self.lstm = nn.LSTM(
-            self.lstm_input_dim, self.hidden_dim, self.n_layers, batch_first=True
-        ).to(self.device)
+            self.input_dim, self.output_dim, self.n_layers, batch_first=True
+        )
 
+        # Create Attention layer
         self.n_heads = settings["lstm_attn"]["n_heads"]
         self.drop_out = settings["lstm_attn"]["drop_out"]
 
         self.config = BertConfig(
             3,  # not used
-            hidden_size=self.hidden_dim,
+            hidden_size=self.output_dim,
             num_hidden_layers=1,
             num_attention_heads=self.n_heads,
-            intermediate_size=self.hidden_dim,
+            intermediate_size=self.output_dim,
             hidden_dropout_prob=self.drop_out,
             attention_probs_dropout_prob=self.drop_out,
         )
 
-        self.attn = BertEncoder(self.config).to(self.device)
+        self.attn = BertEncoder(self.config)
+
+        # Create dense layer
+        self.output_lin = nn.Linear(self.output_dim, 1)
 
     def forward(self, x):
+        # Get data input size
         input_size = len(x["interaction"])
 
-        embedded_x = torch.cat(
-            [self.embedding[i](x[i].int()) for i in list(self.n_input_list)], dim=2
-        )
+        # Embedding layer
+        embedded_x = self.embed_layer(x)
 
+        # Input linear layer
         input_x = self.input_lin(embedded_x)
 
+        # LSTM layer
         output_x, _ = self.lstm(input_x)
 
-        output_x = output_x.contiguous().view(input_size, -1, self.hidden_dim)
+        output_x = output_x.contiguous().view(input_size, -1, self.output_dim)
 
         extended_attention_mask = x["mask"].unsqueeze(1).unsqueeze(2)
         extended_attention_mask = extended_attention_mask.to(dtype=torch.float32)
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
         head_mask = [None] * self.n_layers
 
+        # Attention layer
         encoded_layers = self.attn(
             output_x, extended_attention_mask, head_mask=head_mask
         )
         sequence_output = encoded_layers[-1]
 
+        # Dense layer
         y_hat = self.output_lin(sequence_output).view(input_size, -1)
 
         return y_hat

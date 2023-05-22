@@ -1,4 +1,3 @@
-from src.setup import setup
 from src.data import (
     process_data,
     data_split,
@@ -7,10 +6,11 @@ from src.data import (
 )
 from src.model import create_model
 from src.run import run_model
+from src.setup import setup
 
 
 def main() -> None:
-    # Get settings and raw data from files (os.getcwd changes to entire folder)
+    # Get settings and raw data from files
     data, settings, save_settings = setup()
 
     # Process raw data

@@ -15,14 +15,16 @@ def create_model(data: dict, settings: dict):
     Returns:
         model(nn.Module): Model based on settings.
     """
+
     print("Creating Model...")
 
+    # Get model
     if settings["model_name"].lower() == "mlp":
         model = MultiLayerPerceptronClass(settings, input_dim=settings["column_num"])
     elif settings["model_name"].lower() == "lstm":
-        model = LongShortTermMemory(data, settings)
+        model = LongShortTermMemory(settings)
     elif settings["model_name"].lower() == "lstm_attn":
-        model = LongShortTermMemoryAttention(data, settings)
+        model = LongShortTermMemoryAttention(settings)
     elif settings["model_name"].lower() == "bert":
         model = BidirectionalEncoderRepresentationsfromTransformers(data, settings)
     elif settings["model_name"].lower() == "lgcn":
@@ -39,4 +41,5 @@ def create_model(data: dict, settings: dict):
     print("Created Model!")
     print()
 
-    return model
+    # Return model with device
+    return model.to(settings["device"])
