@@ -25,13 +25,16 @@ class LongShortTermMemory(nn.Module):
         self.n_layers = settings["lstm"]["n_layers"]
         self.output_dim = settings["lstm"]["output_dim"]
         self.label_len_dict = settings["label_len_dict"]
+        self.non_embed_col = settings["non_embedding_columns"]
 
         # Create embedding layer
         self.embed_layer = EmbedLayer(self.embedding_dim, self.label_len_dict)
 
         # Create input linear layer
         embed_output_dim = self.embed_layer.get_output_dim()
-        self.input_lin = nn.Linear(embed_output_dim, self.input_dim)
+        self.input_lin = nn.Linear(
+            embed_output_dim + len(self.non_embed_col), self.input_dim
+        )
 
         # Create LSTM layer
         self.lstm = nn.LSTM(
@@ -49,6 +52,12 @@ class LongShortTermMemory(nn.Module):
 
         # Embedding layer
         embedded_x = self.embed_layer(x)
+
+        # Combine non-embedding layer
+        if len(self.non_embed_col) != 0:
+            embedded_x = torch.cat(
+                [embedded_x] + [x[i].unsqueeze(2) for i in self.non_embed_col], -1
+            )
 
         # Input linear layer
         input_x = self.input_lin(embedded_x)

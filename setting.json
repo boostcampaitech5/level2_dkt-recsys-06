@@ -11,64 +11,43 @@
         "ensemble": "ensemble"
     },
 
-    "file_name": {
-        "train": "2023-05-22_train_data",
-        "test": "2023-05-22_test_data"
-    },
-
+    "file_name": {"train": "2023-05-22_train_data", "test": "2023-05-22_test_data"},
 
     "seed": 42,
+
     "device": "cuda",
 
-    "fixed_train_columns": [
-        "user_id",
-        "question_id",
-        "answer_code"
-    ],
+    "fixed_train_columns": ["user_id", "question_id", "answer_code"],
 
-    "fixed_embedding_columns": [
-        "question_id"
-    ],
+    "fixed_embedding_columns": ["question_id"],
 
-    "selective_train_columns": [
-        "test_id",
-        "knowledge_tag"
-    ],
+    "selective_train_columns": ["test_id", "knowledge_tag"],
 
-    "selective_embedding_columns": [
-        "test_id",
-        "knowledge_tag"
-    ],
+    "selective_embedding_columns": ["test_id", "knowledge_tag"],
 
     "predict_column": "answer_code",
 
-
     "train_valid_split": 0.99,
 
-
     "model_name": "lgcn",
+
     "loss_fn": "BCEWLL",
+
     "optimizer": "ADAM",
+
     "scheduler": "plateau",
+
     "epoch": 10,
+
     "batch_size": 16,
+
     "num_workers": 1,
-    "wandb_activate" : 1, 
 
+    "wandb_activate": true,
 
-    "adam": {
-        "learn_rate": 0.01,
-        "weight_decay": 0
-    },
+    "adam": {"learn_rate": 0.01, "weight_decay": 0},
 
-
-    "plateau":   {
-        "patience": 10,
-        "factor": 0.5,
-        "mode": "max",
-        "verbose": true
-    },
-
+    "plateau": {"patience": 10, "factor": 0.5, "mode": "max", "verbose": true},
 
     "lstm": {
         "embedding_dim": 21,
@@ -78,7 +57,7 @@
         "n_layers": 2
     },
 
-    "lstm_attn":    {
+    "lstm_attn": {
         "embedding_dim": 21,
         "input_dim": 64,
         "output_dim": 64,
@@ -87,7 +66,6 @@
         "n_heads": 2,
         "drop_out": 0.2
     },
-
     "bert": {
         "embedding_dim": 21,
         "input_dim": 64,
@@ -95,10 +73,5 @@
         "n_layers": 2,
         "n_heads": 2
     },
-
-    "lgcn": {
-        "embedding_dim": 64,
-        "num_layers": 1,
-        "alpha": 0
-    }
+    "lgcn": {"embedding_dim": 64, "num_layers": 1, "alpha": 0}
 }
