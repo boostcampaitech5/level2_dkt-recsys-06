@@ -63,6 +63,8 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
     print()
 
     best_auc = -1
+    # count : Variable for Early Stopping
+    early_stopping_counter = 0
 
     # Set epoch for training
     for epoch in range(settings["epoch"]):
@@ -90,6 +92,14 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
 
         if valid_auc > best_auc:
             best_auc = valid_auc
+            early_stopping_counter = 0
+        else:
+            early_stopping_counter += 1
+            if early_stopping_counter == settings["patience"]:
+                print(
+                    f"EarlyStopping counter : {early_stopping_counter} out of {settings['patience']}"
+                )
+                break
 
         scheduler.step(best_auc)
 

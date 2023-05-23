@@ -53,7 +53,8 @@
     "epoch": 10,
     "batch_size": 16,
     "num_workers": 1,
-    "wandb_activate" : 1,
+    "wandb_activate" : 1, 
+    "patience" : 10,
 
 
     "adam": {
