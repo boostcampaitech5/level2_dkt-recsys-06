@@ -44,6 +44,7 @@
 
 
     "train_valid_split": 0.99,
+    "max_train_length": 100,
     "extra_split": true,
 
 
