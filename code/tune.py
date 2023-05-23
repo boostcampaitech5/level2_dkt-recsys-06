@@ -1,4 +1,4 @@
-from src.setup import setup, SaveSetting, get_general_setting
+from src.setup import setup, get_save_settings, set_wandb
 from src.data import (
     process_data,
     data_split,
@@ -51,20 +51,28 @@ def objective(trial):
 
 
 # Get settings and raw data from files (os.getcwd changes to entire folder)
-data, settings, save_settings = setup(silence=True)
+data, settings = setup(silence=True)
+
 # Process raw data
 process_data(data, settings, silence=True)
 
 # Split data
-data_split(data, settings, silence=True)
+data_split(data, settings, 1, silence=True)
+
+# Get save settings
+save_settings = get_save_settings(settings, 0)
+
+# Set wandb
+set_wandb(settings, save_settings)
 
 # Load datasets
-dataset = create_datasets(data, settings, silence=True)
+dataset = create_datasets(data, settings, 0, silence=True)
 
 # Create dataloader
 dataloader, default_settings = create_dataloader(
     dataset, settings, tune=True, silence=True
 )
+
 study = optuna.create_study(direction="maximize")
 study.optimize(objective, n_trials=2)
 with open(f'{save_dir}/{default_settings["model_name"]}.json', "w") as f:

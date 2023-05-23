@@ -36,21 +36,7 @@ def index_data(data: dict, settings: dict) -> None:
         # Save the length of label
         label_len_dict[col] = len(unique_value)
 
-    # Save the dictionary in the settings dictionary
-    settings["label_len_dict"] = label_len_dict
-
-    return
-
-
-def process_mlp(data: dict) -> None:
-    """
-    Processes data for the MLP model
-
-    Parameters:
-        data(dict): Dictionary containing the unprocessed dataframes
-    """
-
-    average_fill_na(data["user_data"], "age")
+        settings["label_len_dict"] = label_len_dict
 
     return
 
@@ -195,9 +181,7 @@ def process_data(data: dict, settings: dict, silence=False) -> None:
     print("Modifing Data...")
 
     # Modify/Create columns in data
-    if settings["model_name"].lower() == "mlp":
-        process_mlp(data)
-    elif settings["model_name"].lower() == "lstm":
+    if settings["model_name"].lower() == "lstm":
         process_lstm(data)
     elif settings["model_name"].lower() == "lstm_attn":
         process_lstm_attn(data)
