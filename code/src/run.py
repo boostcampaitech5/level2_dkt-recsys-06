@@ -22,7 +22,9 @@ class RMSELoss(nn.Module):
         return loss
 
 
-def run_model(dataloader: dict, settings: dict, model, save_settings):
+def run_model(
+    dataloader: dict, settings: dict, model, save_settings
+) -> tuple[list, dict]:
     """
     Runs model through train, valid, and submit.
 
@@ -30,6 +32,10 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
         dataloader(dict): Dictionary containing the dictionary.
         settings(dict): Dictionary containing the settings.
         model(nn.Module): Model used to train
+
+    Returns:
+        predict_data (list): Prediction results of test data to submit
+        results (dict): Dictionary containing the result metrics of training
     """
 
     # Set loss function
@@ -167,6 +173,12 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
         settings,
     )
 
+    results = {}
+    results["train_acc"] = train_final_acc
+    results["train_auc"] = train_final_auc
+    results["valid_acc"] = valid_final_acc
+    results["valid_auc"] = valid_final_auc
+
     print("Saved Model/State Dict!")
     print()
 
@@ -180,7 +192,7 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
     print("Predicted Results!")
     print()
 
-    return predict_data
+    return predict_data, results
 
 
 def train_model(
