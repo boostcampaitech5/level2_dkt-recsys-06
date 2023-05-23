@@ -60,7 +60,7 @@ dataset = create_datasets(data, settings, silence=True)
 # Create dataloader
 dataloader, default_settings = create_dataloader(dataset, settings, tune=True, silence=True)
 study = optuna.create_study(direction="maximize")
-study.optimize(objective, n_trials=1000)
+study.optimize(objective, n_trials=100)
 with open(f'{save_dir}/{default_settings["model_name"]}.json', 'w') as f:
     json.dump(study.best_params,f, indent='\t')
 
