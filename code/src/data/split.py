@@ -195,7 +195,7 @@ def create_datasets(data: dict, settings: dict, silence=False) -> dict:
     return dataset
 
 
-def create_dataloader(dataset: dict, settings: dict, silence=False) -> dict:
+def create_dataloader(dataset: dict, settings: dict,tune=False, silence=False) -> dict:
     """
     Creates dataloader from datasets.
 
@@ -242,5 +242,6 @@ def create_dataloader(dataset: dict, settings: dict, silence=False) -> dict:
 
     print("Created Dataloader!")
     print()
-
+    if tune:
+        return dataloader, settings
     return dataloader

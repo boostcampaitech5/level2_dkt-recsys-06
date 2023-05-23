@@ -11,7 +11,7 @@ from src.run import run_model
 import optuna
 import os, sys, json
 
-save_dir = "../best_params/"
+save_dir = os.path.abspath("../best_params/")
 if not os.path.isdir(save_dir):
     os.mkdir(save_dir)
 
@@ -24,7 +24,7 @@ def objective(trial):
 
     # 1. general hyperparameters
     # default_settings['loss_fn'] = trial.suggest_categorical("loss_fn", ["BCEWLL", "mse", "rmse"])
-    default_settings["epoch"] = trial.suggest_int("epochs", 5, 100, step=5, log=False)
+    default_settings["epoch"] = trial.suggest_int("epochs", 1, 2, step=1, log=False)
     default_settings["batch_size"] = trial.suggest_int(
         "batchsize", 8, 64, step=4, log=False
     )
@@ -66,6 +66,6 @@ dataloader, default_settings = create_dataloader(
     dataset, settings, tune=True, silence=True
 )
 study = optuna.create_study(direction="maximize")
-study.optimize(objective, n_trials=100)
+study.optimize(objective, n_trials=2)
 with open(f'{save_dir}/{default_settings["model_name"]}.json', "w") as f:
     json.dump(study.best_params, f, indent="\t")
