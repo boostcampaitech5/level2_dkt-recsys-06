@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+from .model_base.model_mlp import MultiLayerPerceptron
 from .model_base.model_embed_base import EmbedLayer
 
 
@@ -25,6 +26,7 @@ class LongShortTermMemory(nn.Module):
         self.n_layers = settings["lstm"]["n_layers"]
         self.output_dim = settings["lstm"]["output_dim"]
         self.label_len_dict = settings["label_len_dict"]
+        self.dense_layer_dim = settings["lstm"]["dense_layer_dim"]
 
         # Create embedding layer
         self.embed_layer = EmbedLayer(self.embedding_dim, self.label_len_dict)
@@ -39,7 +41,7 @@ class LongShortTermMemory(nn.Module):
         )
 
         # Create dense layer
-        self.output_lin = nn.Linear(self.output_dim, 1)
+        self.output_lin = MultiLayerPerceptron(self.output_dim, self.dense_layer_dim)
 
         return
 

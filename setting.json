@@ -43,10 +43,10 @@
     "predict_column": "answer_code",
 
 
-    "train_valid_split": 0.99,
+    "train_valid_split": 0.9,
 
 
-    "model_name": "lgcn",
+    "model_name": "lstm_attn",
     "loss_fn": "BCEWLL",
     "optimizer": "ADAM",
     "scheduler": "plateau",
@@ -56,9 +56,10 @@
     "wandb_activate" : 1, 
     "patience" : 10,
 
+
     "adam": {
-        "learn_rate": 0.01,
-        "weight_decay": 0
+        "learn_rate": 0.0001,
+        "weight_decay": 0.01
     },
 
 
@@ -75,7 +76,8 @@
         "input_dim": 64,
         "output_dim": 64,
         "max_seq_len": 20,
-        "n_layers": 2
+        "n_layers": 2,
+        "dense_layer_dim": [16, 4]
     },
 
     "lstm_attn":    {
@@ -85,7 +87,8 @@
         "max_seq_len": 20,
         "n_layers": 2,
         "n_heads": 2,
-        "drop_out": 0.2
+        "drop_out": 0.2,
+        "dense_layer_dim": [16, 4]
     },
 
     "bert": {
@@ -93,7 +96,8 @@
         "input_dim": 64,
         "max_seq_len": 20,
         "n_layers": 2,
-        "n_heads": 2
+        "n_heads": 2,
+        "dense_layer_dim": [16, 4]
     },
 
     "lgcn": {
