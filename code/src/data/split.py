@@ -107,14 +107,32 @@ def data_split(data: dict, settings: dict, num_kfolds: int) -> None:
     if num_kfolds <= 1:
         if not settings["is_graph_model"]:
             # Group by user and combine all columns
-            column_list = data["train"].columns
-            data["train"] = (
-                data["train"]
-                .groupby("user_id")
-                .apply(
+            def data_split_by_seq(input_df: pd.DataFrame):
+                input_df = input_df.iloc[: settings["max_train_length"]]
+                return input_df.groupby(
+                    np.flip(np.arange(len(input_df.index)))
+                    // settings[settings["model_name"].lower()]["max_seq_len"]
+                ).apply(
                     lambda x: {c: x[c].values for c in column_list if c != "user_id"}
                 )
-            )
+
+            # Group by user and combine all columns
+            column_list = data["train"].columns
+            if settings["extra_split"]:
+                data["train"] = (
+                    data["train"].groupby("user_id").apply(data_split_by_seq)
+                )
+            else:
+                data["train"] = (
+                    data["train"]
+                    .groupby("user_id")
+                    .apply(
+                        lambda x: {
+                            c: x[c].values for c in column_list if c != "user_id"
+                        }
+                    )
+                )
+
             data["test"] = (
                 data["test"]
                 .groupby("user_id")
