@@ -69,6 +69,8 @@ def run_model(
     print()
 
     best_auc = -1
+    best_acc = -1
+    best_epoch = -1
     # count : Variable for Early Stopping
     early_stopping_counter = 0
 
@@ -97,8 +99,15 @@ def run_model(
             valid_auc, valid_acc = validate_graph_model(dataloader["valid"], model)
 
         if valid_auc > best_auc:
-            best_auc = valid_auc
+            best_auc, best_acc, best_epoch = valid_auc, valid_acc, epoch + 1
             early_stopping_counter = 0
+            # Save the Best Model
+            save_settings.save_best_model(
+                model=model, model_name=settings["model_name"].lower()
+            )
+
+            print(f"Best Model Update : [epoch : {best_epoch}]")
+
         else:
             early_stopping_counter += 1
             if early_stopping_counter == settings["patience"]:
@@ -156,6 +165,8 @@ def run_model(
         f"Final results:\tTrain AUC: {train_final_auc}\tTrain ACC: {train_final_acc}\n"
         + f"Final results:\tValid AUC: {valid_final_auc}\tValid ACC: {valid_final_acc}\n"
     )
+    print()
+    print(f"Best results: \tValid AUC: {best_auc}\tValid ACC: {best_acc}\n")
 
     print("Got Final Results!")
     print()
@@ -183,6 +194,10 @@ def run_model(
     print()
 
     print("Predicting Results...")
+
+    if settings["best_model_activate"]:
+        best_model_path = save_settings.get_best_model_path(settings["model_name"])
+        model = torch.load(best_model_path)
 
     # Get predicted data for submission
     if not settings["is_graph_model"]:

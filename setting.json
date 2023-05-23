@@ -8,7 +8,8 @@
         "submit": "submit",
         "train": "train",
         "valid": "valid",
-        "ensemble": "ensemble"
+        "ensemble": "ensemble",
+        "best_model": "best_model"
     },
 
     "file_name": {
@@ -57,6 +58,7 @@
     "num_workers": 1,
     "wandb_activate" : 1, 
     "patience" : 10,
+    "best_model_activate": 1,
 
 
     "adam": {

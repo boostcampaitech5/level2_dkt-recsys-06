@@ -153,6 +153,9 @@ class SaveSetting:
         self.submit_folder_path = os.path.join(folder_path, settings["path"]["submit"])
         self.train_folder_path = os.path.join(folder_path, settings["path"]["train"])
         self.valid_folder_path = os.path.join(folder_path, settings["path"]["valid"])
+        self.best_model_folder_path = os.path.join(
+            folder_path, settings["path"]["best_model"]
+        )
 
         # File name
         self.name = settings["save_name"] + f"_{sid}"
@@ -183,6 +186,8 @@ class SaveSetting:
             os.mkdir(self.train_folder_path)
         if not os.path.exists(self.valid_folder_path):
             os.mkdir(self.valid_folder_path)
+        if not os.path.exists(self.best_model_folder_path):
+            os.mkdir(self.best_model_folder_path)
 
         return
 
@@ -248,12 +253,43 @@ class SaveSetting:
         """
 
         # Get model path
-        model_path = os.path.join(self.model_folder_path, self.name + f"_model")
+        model_path = os.path.join(self.model_folder_path, self.name + f"_model.pt")
 
         # Save model to path
         torch.save(model, model_path)
 
         return
+
+    def save_best_model(self, model: torch.nn.Module, model_name: str) -> None:
+        """Save Best model as file
+
+        Args:
+            model (torch.nn.Module): Model that is save
+            model_name (str): model_name ex> lstm, lgcn, etc...
+        """
+        # Get best_model path
+        best_model_path = os.path.join(
+            self.best_model_folder_path, self.name + model_name + f"_model.pt"
+        )
+
+        # Save best_model to path
+        torch.save(model, best_model_path)
+
+        return
+
+    def get_best_model_path(self, model_name: str) -> str:
+        """Function that returns the path of the best model
+
+        Args:
+            model_name (str): model_name ex> lstm, lgcn, etc...
+
+        Returns:
+            str: Best Model path
+        """
+        best_model_path = os.path.join(
+            self.best_model_folder_path, self.name + model_name + f"_model.pt"
+        )
+        return best_model_path
 
     def save_statedict(
         self,
