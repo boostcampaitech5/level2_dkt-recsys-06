@@ -102,13 +102,25 @@ def data_split(data: dict, settings: dict) -> None:
     print("Splitting dataset...")
 
     if not settings["is_graph_model"]:
+
+        def data_split_by_seq(input_df: pd.DataFrame):
+            return input_df.groupby(
+                np.arange(len(input_df.index))
+                // settings[settings["model_name"].lower()]["max_seq_len"]
+            ).apply(lambda x: {c: x[c].values for c in column_list if c != "user_id"})
+
         # Group by user and combine all columns
         column_list = data["train"].columns
-        data["train"] = (
-            data["train"]
-            .groupby("user_id")
-            .apply(lambda x: {c: x[c].values for c in column_list if c != "user_id"})
-        )
+        if settings["extra_split"]:
+            data["train"] = data["train"].groupby("user_id").apply(data_split_by_seq)
+        else:
+            data["train"] = (
+                data["train"]
+                .groupby("user_id")
+                .apply(
+                    lambda x: {c: x[c].values for c in column_list if c != "user_id"}
+                )
+            )
         data["test"] = (
             data["test"]
             .groupby("user_id")
