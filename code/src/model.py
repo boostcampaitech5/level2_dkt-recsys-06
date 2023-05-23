@@ -17,7 +17,7 @@ def create_model(data: dict, settings: dict, silence=False):
     """
     # print disable
     if silence:
-        global print 
+        global print
         print = str
     print("Creating Model...")
 

@@ -22,7 +22,9 @@ class RMSELoss(nn.Module):
         return loss
 
 
-def run_model(dataloader: dict, settings: dict, model, save_settings, tune=False,silence=False):
+def run_model(
+    dataloader: dict, settings: dict, model, save_settings, tune=False, silence=False
+):
     """
     Runs model through train, valid, and submit.
 
@@ -33,9 +35,9 @@ def run_model(dataloader: dict, settings: dict, model, save_settings, tune=False
     """
     # print disable
     if silence:
-        global print 
+        global print
         print = str
-    
+
     # Set loss function
     if settings["loss_fn"].lower() == "rmse":
         loss_fn = RMSELoss()

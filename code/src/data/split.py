@@ -100,7 +100,7 @@ def data_split(data: dict, settings: dict, silence=False) -> None:
     """
     # print disable
     if silence:
-        global print 
+        global print
         print = str
     print("Splitting dataset...")
 
@@ -160,7 +160,7 @@ def data_split(data: dict, settings: dict, silence=False) -> None:
     return
 
 
-def create_datasets(data: dict, settings: dict,  silence=False) -> dict:
+def create_datasets(data: dict, settings: dict, silence=False) -> dict:
     """
     Creates datasets using the train, valid, test data
 
@@ -173,7 +173,7 @@ def create_datasets(data: dict, settings: dict,  silence=False) -> dict:
     """
     # print disable
     if silence:
-        global print 
+        global print
         print = str
     # For graph_based models, omit this function
     if settings["is_graph_model"]:
@@ -195,7 +195,7 @@ def create_datasets(data: dict, settings: dict,  silence=False) -> dict:
     return dataset
 
 
-def create_dataloader(dataset: dict, settings: dict,  silence=False) -> dict:
+def create_dataloader(dataset: dict, settings: dict, silence=False) -> dict:
     """
     Creates dataloader from datasets.
 
@@ -207,7 +207,7 @@ def create_dataloader(dataset: dict, settings: dict,  silence=False) -> dict:
     """
     # print disable
     if silence:
-        global print 
+        global print
         print = str
     print("Creating Dataloader...")
 

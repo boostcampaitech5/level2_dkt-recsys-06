@@ -362,7 +362,7 @@ def setup(silence=False) -> tuple[dict, dict, SaveSetting]:
     """
     # print disable
     if silence:
-        global print 
+        global print
         print = str
     # Changes directory to parent directory
     os.chdir("..")
