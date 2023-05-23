@@ -11,9 +11,7 @@ from src.run import run_model
 import optuna
 import os, sys, json
 
-print = str
-
-save_dir = "/opt/ml/team/work/best_params/"
+save_dir = "../best_params/"
 if not os.path.isdir(save_dir):
     os.mkdir(save_dir)
 
