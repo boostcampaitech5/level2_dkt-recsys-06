@@ -44,6 +44,7 @@
 
 
     "train_valid_split": 0.99,
+    "extra_split": true,
 
 
     "model_name": "lgcn",
@@ -53,7 +54,7 @@
     "epoch": 10,
     "batch_size": 16,
     "num_workers": 1,
-    "wandb_activate" : 1, 
+    "wandb_activate" : 1,
 
 
     "adam": {
