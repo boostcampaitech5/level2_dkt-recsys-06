@@ -15,6 +15,7 @@ class DKTDataset(torch.utils.data.Dataset):
             data(np.ndarray): Numpy array of processed data
             settings(dict): Dictionary containing the settings
         """
+
         self.data = data
 
         # Fixed data length
@@ -24,9 +25,22 @@ class DKTDataset(torch.utils.data.Dataset):
         self.predict_column = settings["predict_column"]
 
         # The indexed columns
-        self.index_column = settings["index_columns"]
+        self.index_column = settings["embedding_columns"]
 
     def __getitem__(self, index: int) -> dict:
+        """
+        Gets data in index
+        Processes the data to return a dict with each column as the index
+
+        Parameters:
+            data(np.ndarray): Numpy array of processed data
+            settings(dict): Dictionary containing the settings
+
+        Returns:
+            row_data(dict): Dictionary containing the data divided by the column
+        """
+
+        # Load from data
         row = self.data[index]
 
         # Load from data
@@ -35,6 +49,7 @@ class DKTDataset(torch.utils.data.Dataset):
             for i, v in row.items()
             if i in self.index_column
         }
+
         # Leave the predict column alone
         row_data[self.predict_column] = torch.tensor(
             row[self.predict_column], dtype=torch.int
@@ -80,39 +95,61 @@ def data_split(data: dict, settings: dict) -> None:
     Splits train data to train data and validation data
 
     Parameters:
-        data(dict): Dictionary containing the unprocessed data
+        data(dict): Dictionary containing the processed data
         settings(dict): Dictionary containing the settings
     """
+
     print("Splitting dataset...")
-    # Group by user and combine all columns
-    column_list = data["train"].columns
-    data["train"] = (
-        data["train"]
-        .groupby("userID")
-        .apply(lambda x: {c: x[c].values for c in column_list if c != "userID"})
-    )
-    data["test"] = (
-        data["test"]
-        .groupby("userID")
-        .apply(lambda x: {c: x[c].values for c in column_list if c != "userID"})
-    )
 
-    # Change data to numpy arrays
-    data["train"] = data["train"].to_numpy()
-    data["test"] = data["test"].to_numpy()
+    if not settings["is_graph_model"]:
+        # Group by user and combine all columns
+        column_list = data["train"].columns
+        data["train"] = (
+            data["train"]
+            .groupby("user_id")
+            .apply(lambda x: {c: x[c].values for c in column_list if c != "user_id"})
+        )
+        data["test"] = (
+            data["test"]
+            .groupby("user_id")
+            .apply(lambda x: {c: x[c].values for c in column_list if c != "user_id"})
+        )
 
-    # Fix to default seed 0
-    # This is needed when ensembling both files
-    ## Having both files with different train and valid datasets will prevent us from making a loss estimate
-    random.seed(0)
+        # Change data to numpy arrays
+        data["train"] = data["train"].to_numpy()
+        data["test"] = data["test"].to_numpy()
 
-    # Shuffle the train dataset randomly
-    random.shuffle(data["train"])
+        # Fix to default seed 0
+        # This is needed when ensembling both files
+        ## Having both files with different train and valid datasets will prevent us from making a loss estimate
+        random.seed(0)
 
-    # Divide data by ratio
-    train_size = int(len(data["train"]) * settings["train_valid_split"])
-    data["valid"] = data["train"][train_size:]
-    data["train"] = data["train"][:train_size]
+        # Shuffle the train dataset randomly
+        random.shuffle(data["train"])
+
+        # Divide data by ratio
+        train_size = int(len(data["train"]) * settings["train_valid_split"])
+        data["valid"] = data["train"][train_size:]
+        data["train"] = data["train"][:train_size]
+
+    else:
+        np.random.seed(0)
+
+        # size : # of edge of train
+        size_all = len(data["train"]["label"])
+        train_size = int(size_all * settings["train_valid_split"])
+
+        edge_ids = np.arange(size_all)
+        edge_ids = np.random.permutation(edge_ids)
+
+        train_edge_ids = edge_ids[:train_size]
+        valid_edge_ids = edge_ids[train_size:]
+
+        edge, label = data["train"]["edge"], data["train"]["label"]
+        # label = label.to("cpu").detach().numpy()
+
+        data["train"] = dict(edge=edge[:, train_edge_ids], label=label[train_edge_ids])
+        data["valid"] = dict(edge=edge[:, valid_edge_ids], label=label[valid_edge_ids])
 
     print("Splitted Data!")
     print()
@@ -131,6 +168,12 @@ def create_datasets(data: dict, settings: dict) -> dict:
     Returns:
         dataset(dict): Dictionary containing loaded datasets
     """
+
+    # For graph_based models, omit this function
+    if settings["is_graph_model"]:
+        dataset = {"train": data["train"], "valid": data["valid"], "test": data["test"]}
+        return dataset
+
     print("Creating Datasets!")
 
     dataset = dict()
@@ -160,29 +203,33 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
     print("Creating Dataloader...")
 
     dataloader = dict()
-
-    # Create dataloader
-    dataloader["train"] = DataLoader(
-        dataset["train"],
-        batch_size=settings["batch_size"],
-        shuffle=True,
-        num_workers=settings["num_workers"],
-        pin_memory=False,
-    )
-    dataloader["valid"] = DataLoader(
-        dataset["valid"],
-        batch_size=settings["batch_size"],
-        shuffle=False,
-        num_workers=settings["num_workers"],
-        pin_memory=False,
-    )
-    dataloader["test"] = DataLoader(
-        dataset["test"],
-        batch_size=settings["batch_size"],
-        shuffle=False,
-        num_workers=settings["num_workers"],
-        pin_memory=False,
-    )
+    if not settings["is_graph_model"]:
+        # Create dataloader
+        dataloader["train"] = DataLoader(
+            dataset["train"],
+            batch_size=settings["batch_size"],
+            shuffle=True,
+            num_workers=settings["num_workers"],
+            pin_memory=False,
+        )
+        dataloader["valid"] = DataLoader(
+            dataset["valid"],
+            batch_size=settings["batch_size"],
+            shuffle=False,
+            num_workers=settings["num_workers"],
+            pin_memory=False,
+        )
+        dataloader["test"] = DataLoader(
+            dataset["test"],
+            batch_size=settings["batch_size"],
+            shuffle=False,
+            num_workers=settings["num_workers"],
+            pin_memory=False,
+        )
+    else:
+        dataloader["train"] = dataset["train"]
+        dataloader["valid"] = dataset["valid"]
+        dataloader["test"] = dataset["test"]
 
     print("Created Dataloader!")
     print()

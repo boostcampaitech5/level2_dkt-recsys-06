@@ -12,48 +12,52 @@
     },
 
     "file_name": {
-        "train": "train_data",
-        "test": "test_data"
+        "train": "2023-05-22_train_data",
+        "test": "2023-05-22_test_data"
     },
 
 
     "seed": 42,
     "device": "cuda",
 
-
-    "choose_columns": [
-        "userID",
-        "assessmentItemID",
-        "testId",
-        "answerCode",
-        "KnowledgeTag",
-        "big_tag"
+    "fixed_train_columns": [
+        "user_id",
+        "question_id",
+        "answer_code"
     ],
 
-    "index_columns": [
-        "assessmentItemID",
-        "testId",
-        "KnowledgeTag",
-        "big_tag"
+    "fixed_embedding_columns": [
+        "question_id"
     ],
 
-    "predict_column": "answerCode",
+    "selective_train_columns": [
+        "test_id",
+        "knowledge_tag"
+    ],
+
+    "selective_embedding_columns": [
+        "test_id",
+        "knowledge_tag"
+    ],
+
+    "predict_column": "answer_code",
 
 
-    "train_valid_split": 0.7,
+    "train_valid_split": 0.9,
 
 
-    "model_name": "bert",
+    "model_name": "lstm_attn",
     "loss_fn": "BCEWLL",
     "optimizer": "ADAM",
     "scheduler": "plateau",
-    "epoch": 40,
+    "epoch": 10,
     "batch_size": 16,
     "num_workers": 1,
+    "wandb_activate" : 1,
 
 
     "adam": {
-        "learn_rate": 0.00002,
+        "learn_rate": 0.0001,
         "weight_decay": 0.01
     },
 
@@ -67,33 +71,37 @@
 
 
     "lstm": {
-        "hidden_dim": 64,
-        "n_layers": 2,
-        "input_dim": 21,
-        "lstm_input_dim": 64,
+        "embedding_dim": 21,
+        "input_dim": 64,
+        "output_dim": 64,
         "max_seq_len": 20,
-        "dense_layer_dim": [16]
+        "n_layers": 2,
+        "dense_layer_dim": [16, 4]
     },
 
     "lstm_attn":    {
-        "hidden_dim": 64,
+        "embedding_dim": 21,
+        "input_dim": 64,
+        "output_dim": 64,
+        "max_seq_len": 20,
         "n_layers": 2,
         "n_heads": 2,
-        "input_dim": 21,
-        "lstm_input_dim": 64,
         "drop_out": 0.2,
-        "max_seq_len": 20,
         "dense_layer_dim": [16, 4]
     },
 
     "bert": {
-        "hidden_dim": 64,
+        "embedding_dim": 21,
+        "input_dim": 64,
+        "max_seq_len": 20,
         "n_layers": 2,
         "n_heads": 2,
-        "input_dim": 21,
-        "lstm_input_dim": 64,
-        "max_seq_len": 20,
         "dense_layer_dim": [16, 4]
-    }
+    },
 
+    "lgcn": {
+        "embedding_dim": 64,
+        "num_layers": 1,
+        "alpha": 0
+    }
 }
