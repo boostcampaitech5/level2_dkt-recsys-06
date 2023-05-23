@@ -54,7 +54,7 @@
     "batch_size": 16,
     "num_workers": 1,
     "wandb_activate" : 1, 
-
+    "patience" : 10,
 
     "adam": {
         "learn_rate": 0.01,
