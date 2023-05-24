@@ -104,7 +104,9 @@ class DKTDataset(torch.utils.data.Dataset):
                         torch.tensor(self.graph_emb[str(int(q_id) - 1)])
                     )
             row_data["question_id"] = (
-                torch.cat(question_list, dim=0).reshape(20, 64).to(torch.float)
+                torch.cat(question_list, dim=0)
+                .reshape(self.max_seq_len, 64)
+                .to(torch.float)
             )
 
         return row_data
