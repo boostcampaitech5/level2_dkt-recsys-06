@@ -54,7 +54,7 @@ def process_lstm(data: dict) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -72,7 +72,7 @@ def process_lstm_attn(data) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -90,7 +90,7 @@ def process_bert(data) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
