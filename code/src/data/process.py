@@ -1,7 +1,9 @@
 import pandas as pd
-from .data_modify import age_average_fill_na, average_fill_na, create_feature_test_cat
 from sklearn.preprocessing import LabelEncoder
 import torch
+
+
+from .data_modify import *
 
 
 def index_data(data: dict, settings: dict) -> None:
@@ -36,21 +38,7 @@ def index_data(data: dict, settings: dict) -> None:
         # Save the length of label
         label_len_dict[col] = len(unique_value)
 
-    # Save the dictionary in the settings dictionary
-    settings["label_len_dict"] = label_len_dict
-
-    return
-
-
-def process_mlp(data: dict) -> None:
-    """
-    Processes data for the MLP model
-
-    Parameters:
-        data(dict): Dictionary containing the unprocessed dataframes
-    """
-
-    average_fill_na(data["user_data"], "age")
+        settings["label_len_dict"] = label_len_dict
 
     return
 
@@ -68,7 +56,7 @@ def process_lstm(data: dict) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -86,7 +74,7 @@ def process_lstm_attn(data) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -104,7 +92,7 @@ def process_bert(data) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -120,12 +108,12 @@ def process_lgcn(data: dict) -> None:
 
     # Among duplicate user_id and assessmentItemID, only the last one is deleted.
     data["concat_data"].drop_duplicates(
-        subset=["userID", "assessmentItemID"], keep="last", inplace=True
+        subset=["user_id", "question_id"], keep="last", inplace=True
     )
 
     # Training data, test data reclassification = separate_data
-    data["train"] = data["concat_data"][data["concat_data"]["answerCode"] >= 0]
-    data["test"] = data["concat_data"][data["concat_data"]["answerCode"] < 0]
+    data["train"] = data["concat_data"][data["concat_data"]["answer_code"] >= 0]
+    data["test"] = data["concat_data"][data["concat_data"]["answer_code"] < 0]
 
     return
 
@@ -141,8 +129,8 @@ def make_nodes(data_concat: pd.DataFrame) -> dict:
         dict: node_to_idx
     """
     user_id, item_id = (
-        sorted(data_concat["userID"].unique().tolist()),
-        sorted(data_concat["assessmentItemID"].unique().tolist()),
+        sorted(data_concat["user_id"].unique().tolist()),
+        sorted(data_concat["question_id"].unique().tolist()),
     )
     # merge user_id & item_id
     node_id = user_id + item_id
@@ -168,7 +156,7 @@ def get_edge_label_dict(data: pd.DataFrame, node2idx: dict, device: str) -> dict
 
     # Label Encoding & Append edge and label
     for user_id, item_id, answer_code in zip(
-        data["userID"], data["assessmentItemID"], data["answerCode"]
+        data["user_id"], data["question_id"], data["answer_code"]
     ):
         edges.append([node2idx[user_id], node2idx[item_id]])
         labels.append(answer_code)
@@ -180,7 +168,7 @@ def get_edge_label_dict(data: pd.DataFrame, node2idx: dict, device: str) -> dict
     return dict(edge=edges.to(device), label=labels.to(device))
 
 
-def process_data(data: dict, settings: dict) -> None:
+def process_data(data: dict, settings: dict, silence=False) -> None:
     """
     Merges / Drops columns / Indexes from data in order
 
@@ -188,14 +176,14 @@ def process_data(data: dict, settings: dict) -> None:
         data(dict): Dictionary containing the unprocessed dataframes
         settings(dict): Dictionary containing the settings
     """
-
+    if silence:
+        global print
+        print = str
     # Modify data
     print("Modifing Data...")
 
     # Modify/Create columns in data
-    if settings["model_name"].lower() == "mlp":
-        process_mlp(data)
-    elif settings["model_name"].lower() == "lstm":
+    if settings["model_name"].lower() == "lstm":
         process_lstm(data)
     elif settings["model_name"].lower() == "lstm_attn":
         process_lstm_attn(data)

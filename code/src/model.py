@@ -1,11 +1,10 @@
-from .model_folder.model_mlp import MultiLayerPerceptronClass
 from .model_folder.model_lstm import LongShortTermMemory
 from .model_folder.model_lstmattn import LongShortTermMemoryAttention
 from .model_folder.model_bert import BidirectionalEncoderRepresentationsfromTransformers
 from torch_geometric.nn.models import LightGCN
 
 
-def create_model(data: dict, settings: dict):
+def create_model(data: dict, settings: dict, silence=False):
     """
     Creates model using settings.
 
@@ -15,7 +14,10 @@ def create_model(data: dict, settings: dict):
     Returns:
         model(nn.Module): Model based on settings.
     """
-
+    # print disable
+    if silence:
+        global print
+        print = str
     print("Creating Model...")
 
     # Get model

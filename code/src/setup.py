@@ -1,9 +1,11 @@
-from datetime import datetime
-import json
-import numpy as np
 import os
-import pandas as pd
+import json
 import random
+from datetime import datetime
+from typing import Type
+
+import numpy as np
+import pandas as pd
 import torch
 import wandb
 
@@ -53,6 +55,12 @@ def set_basic_settings(settings: dict) -> None:
         # If not change device to cpu
         settings["device"] = "cpu"
 
+    settings["save_name"] = (
+        datetime.now().strftime("%Y%m%d_%H%M%S")
+        if settings["save_name"] == ""
+        else settings["save_name"]
+    )
+
     # Get seed from settings
     seed = settings["seed"]
 
@@ -95,28 +103,6 @@ def set_basic_settings(settings: dict) -> None:
     return
 
 
-def set_wandb(settings: dict) -> None:
-    if settings["wandb_activate"]:
-        wandb.login()
-        config = {
-            "model_name": settings["model_name"],
-            "loss_fn": settings["loss_fn"],
-            "optimizer": settings["optimizer"],
-            "scheduler": settings["scheduler"],
-            "epoch": settings["epoch"],
-            "batch_size": settings["batch_size"],
-            "num_workers": settings["num_workers"],
-            "train_valid_split": settings["train_valid_split"],
-        }
-        config.update(settings["adam"])
-        config.update(settings[settings["model_name"].lower()])
-        wandb.init(project="dkt", config=config)
-        wandb.run.name = settings["model_name"] + datetime.now().strftime(
-            "%Y%m%d_%H%M%S"
-        )
-        wandb.run.save()
-
-
 def get_unprocessed_data(folder_path: str, settings: dict) -> dict:
     """
     Gets unprocessed train/test data as dataframe and returns it in a dictionary of dataframes
@@ -148,13 +134,14 @@ class SaveSetting:
     Used to control the saving of files and logs
     """
 
-    def __init__(self, folder_path: str, settings: dict):
+    def __init__(self, folder_path: str, settings: dict, sid: int):
         """
         Initializes SaveSetting class
 
         Parameters:
             folder_path(str): String containing the path to the project folder
             settings(dict): Dictionary containing the settings
+            sid(int): Unique id for save settings
         """
 
         # Setup folder paths
@@ -166,9 +153,12 @@ class SaveSetting:
         self.submit_folder_path = os.path.join(folder_path, settings["path"]["submit"])
         self.train_folder_path = os.path.join(folder_path, settings["path"]["train"])
         self.valid_folder_path = os.path.join(folder_path, settings["path"]["valid"])
+        self.best_model_folder_path = os.path.join(
+            folder_path, settings["path"]["best_model"]
+        )
 
         # File name
-        self.name = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.name = settings["save_name"] + f"_{sid}"
 
         # Log file
         self.log_file = None
@@ -196,6 +186,8 @@ class SaveSetting:
             os.mkdir(self.train_folder_path)
         if not os.path.exists(self.valid_folder_path):
             os.mkdir(self.valid_folder_path)
+        if not os.path.exists(self.best_model_folder_path):
+            os.mkdir(self.best_model_folder_path)
 
         return
 
@@ -261,12 +253,43 @@ class SaveSetting:
         """
 
         # Get model path
-        model_path = os.path.join(self.model_folder_path, self.name + f"_model")
+        model_path = os.path.join(self.model_folder_path, self.name + f"_model.pt")
 
         # Save model to path
         torch.save(model, model_path)
 
         return
+
+    def save_best_model(self, model: torch.nn.Module, model_name: str) -> None:
+        """Save Best model as file
+
+        Args:
+            model (torch.nn.Module): Model that is save
+            model_name (str): model_name ex> lstm, lgcn, etc...
+        """
+        # Get best_model path
+        best_model_path = os.path.join(
+            self.best_model_folder_path, self.name + model_name + f"_model.pt"
+        )
+
+        # Save best_model to path
+        torch.save(model, best_model_path)
+
+        return
+
+    def get_best_model_path(self, model_name: str) -> str:
+        """Function that returns the path of the best model
+
+        Args:
+            model_name (str): model_name ex> lstm, lgcn, etc...
+
+        Returns:
+            str: Best Model path
+        """
+        best_model_path = os.path.join(
+            self.best_model_folder_path, self.name + model_name + f"_model.pt"
+        )
+        return best_model_path
 
     def save_statedict(
         self,
@@ -351,16 +374,18 @@ class SaveSetting:
         return
 
 
-def setup() -> tuple[dict, dict, SaveSetting]:
+def setup(silence=False) -> tuple[dict, dict]:
     """
-    Setups settings and returns setting/unprocessed/saving data
+    Setups settings and returns setting/unprocessed
 
     Returns:
         data(dict): Dictionary containing the unprocessed data dataframes
         settings(dict): Dictionary containing the settings
-        save_settings(SaveSetting): Class used to save files(log, model, result)
     """
-
+    # print disable
+    if silence:
+        global print
+        print = str
     # Changes directory to parent directory
     os.chdir("..")
 
@@ -383,11 +408,6 @@ def setup() -> tuple[dict, dict, SaveSetting]:
     print("Set General Setting!")
     print()
 
-    print("Set Wandb..")
-    set_wandb(general_settings)
-    print("Done")
-    print()
-
     print("Getting Unprocessed Data...")
 
     # Import unprocessed data
@@ -396,12 +416,55 @@ def setup() -> tuple[dict, dict, SaveSetting]:
     print("Got Unprocessed Data!")
     print()
 
+    return data, general_settings
+
+
+def get_save_settings(settings: dict, sid: int) -> SaveSetting:
+    """
+    Setups settings related to saving files and logs
+
+    Args:
+        settings (dict): Dictionary containing the general settings
+        sid (int): Unique id for save settings
+
+    Returns:
+        save_settings(SaveSetting): Class used to save files(log, model, result)
+    """
+    # Saves project folder path
+    folder_path = os.getcwd()
+
     print("Getting Save Settings...")
 
     # Get save settings
-    save_settings = SaveSetting(folder_path, general_settings)
+    save_settings = SaveSetting(folder_path, settings, sid)
 
     print("Got Save Settings!")
     print()
 
-    return data, general_settings, save_settings
+    print(f"============== {save_settings.name} ==============")
+    print()
+
+    return save_settings
+
+
+def set_wandb(settings: dict, save_setting: Type[SaveSetting]) -> None:
+    if settings["wandb_activate"]:
+        print("Set Wandb..")
+        wandb.login()
+        config = {
+            "model_name": settings["model_name"],
+            "loss_fn": settings["loss_fn"],
+            "optimizer": settings["optimizer"],
+            "scheduler": settings["scheduler"],
+            "epoch": settings["epoch"],
+            "batch_size": settings["batch_size"],
+            "num_workers": settings["num_workers"],
+            "train_valid_split": settings["train_valid_split"],
+        }
+        config.update(settings["adam"])
+        config.update(settings[settings["model_name"].lower()])
+        wandb.init(project="dkt", config=config, reinit=True)
+        wandb.run.name = settings["model_name"] + f"_{save_setting.name}"
+        wandb.run.save()
+        print("Done")
+        print()

@@ -3,6 +3,7 @@ import torch.nn as nn
 from transformers.models.bert.modeling_bert import BertConfig, BertEncoder, BertModel
 
 from .model_base.model_embed_base import EmbedLayer
+from .model_base.model_mlp import MultiLayerPerceptron
 
 
 class BidirectionalEncoderRepresentationsfromTransformers(nn.Module):
@@ -26,6 +27,7 @@ class BidirectionalEncoderRepresentationsfromTransformers(nn.Module):
         self.label_len_dict = settings["label_len_dict"]
         self.n_layers = settings["bert"]["n_layers"]
         self.n_heads = settings["bert"]["n_heads"]
+        self.dense_layer_dim = settings["bert"]["dense_layer_dim"]
         self.non_embed_col = settings["non_embedding_columns"]
 
         # Create embedding layer
@@ -48,8 +50,8 @@ class BidirectionalEncoderRepresentationsfromTransformers(nn.Module):
 
         self.encoder = BertModel(self.config)
 
-        # Create dense layer
-        self.output_lin = nn.Linear(self.input_dim, 1)
+        # output dense layer
+        self.output_lin = MultiLayerPerceptron(self.input_dim, self.dense_layer_dim)
 
         return
 
