@@ -48,7 +48,7 @@
 
     "train_valid_split": 0.9,
     "max_train_length": 100,
-    "extra_split": true,
+    "extra_split": false,
 
 
     "model_name": "lstm_attn",
@@ -64,6 +64,21 @@
 
 
     "adam": {
+        "learn_rate": 0.0001,
+        "weight_decay": 0.01
+    },
+
+    "sgd": {
+        "learn_rate": 0.0001,
+        "weight_decay": 0.01
+    },
+
+    "rmsprop": {
+        "learn_rate": 0.0001,
+        "weight_decay": 0.01
+    },
+
+    "adadelta": {
         "learn_rate": 0.0001,
         "weight_decay": 0.01
     },
