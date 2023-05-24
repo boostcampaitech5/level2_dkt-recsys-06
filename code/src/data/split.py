@@ -4,6 +4,7 @@ import random
 from sklearn.model_selection import KFold
 import torch
 from torch.utils.data import TensorDataset, DataLoader
+import json
 
 
 class DKTDataset(torch.utils.data.Dataset):
@@ -15,6 +16,14 @@ class DKTDataset(torch.utils.data.Dataset):
             data(np.ndarray): Numpy array of processed data
             settings(dict): Dictionary containing the settings
         """
+        # graph_embedding True
+        self.is_graph_emb = settings["lgcn_embedding_activate"]
+        if self.is_graph_emb:
+            with open(settings["path"]["embed"] + "/question_embed.json") as f:
+                try:
+                    self.graph_emb = json.load(f)
+                except:
+                    print("File : x")
 
         self.data = data
 
@@ -83,6 +92,20 @@ class DKTDataset(torch.utils.data.Dataset):
         interaction = (interaction * interaction_mask).to(torch.int64)
         row_data["interaction"] = interaction
         row_data = {k: v.int() for k, v in row_data.items()}
+
+        # graph_embedding 사용
+        if self.is_graph_emb:
+            question_list = []
+            for q_id in row_data["question_id"]:
+                if int(q_id) == 0:
+                    question_list.append(torch.zeros(64))
+                else:
+                    question_list.append(
+                        torch.tensor(self.graph_emb[str(int(q_id) - 1)])
+                    )
+            row_data["question_id"] = (
+                torch.cat(question_list, dim=0).reshape(20, 64).to(torch.float)
+            )
 
         return row_data
 

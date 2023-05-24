@@ -18,6 +18,12 @@ def index_data(data: dict, settings: dict) -> None:
 
     # Loop for each labeling column
     for col in settings["embedding_columns"]:
+        if settings["lgcn_embedding_activate"] and col == "question_id":
+            data["train"][col] = data["train"][col].map(data["node2idx"])
+            data["test"][col] = data["test"][col].map(data["node2idx"])
+            data["train"]["user_id"] = data["train"]["user_id"].map(data["node2idx"])
+            data["test"]["user_id"] = data["test"][col].map(data["node2idx"])
+            continue
         # Create label encoder and fit unique values
         le = LabelEncoder()
         unique_value = data["train"][col].unique().tolist() + ["unknown"]
@@ -95,11 +101,11 @@ def process_bert(data) -> None:
     return
 
 
-def process_lgcn(data: dict) -> None:
-    """Append merge data : train + test & Split train and test
+def concat_data(data: dict) -> None:
+    """Merge Train & Test
 
     Args:
-        data (dict): data .. key : train, test
+        data (dict): dictionary of {data[trian] and data[test]}
     """
     # concatenate 'train data set & Test data set
     data["concat_data"] = pd.concat([data["train"], data["test"]])
@@ -108,7 +114,16 @@ def process_lgcn(data: dict) -> None:
     data["concat_data"].drop_duplicates(
         subset=["user_id", "question_id"], keep="last", inplace=True
     )
+    return
 
+
+def process_lgcn(data: dict) -> None:
+    """Append merge data : train + test & Split train and test
+
+    Args:
+        data (dict): data .. key : train, test
+    """
+    concat_data(data)
     # Training data, test data reclassification = separate_data
     data["train"] = data["concat_data"][data["concat_data"]["answer_code"] >= 0]
     data["test"] = data["concat_data"][data["concat_data"]["answer_code"] < 0]
@@ -217,6 +232,11 @@ def process_data(data: dict, settings: dict, silence=False) -> None:
     print()
 
     print("Indexing Columns...")
+
+    # Make Node
+    if settings["lgcn_embedding_activate"]:
+        concat_data(data)
+        data["node2idx"] = make_nodes(data["concat_data"])
 
     # Label columns
     index_data(data, settings)
