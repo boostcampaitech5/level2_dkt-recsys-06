@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from torch.optim import Adam
+from torch.optim import Adam, SGD, RMSprop, Adadelta
 from torch.nn import MSELoss
 from sklearn.metrics import accuracy_score, roc_auc_score
 from torch.nn.functional import sigmoid
@@ -57,8 +57,32 @@ def run_model(
             lr=settings["adam"]["learn_rate"],
             weight_decay=settings["adam"]["weight_decay"],
         )
+    elif settings["optimizer"].lower() == "sgd":
+        optimizer = SGD(
+            model.parameters(),
+            lr=settings["sgd"]["learn_rate"],
+            weight_decay=settings["sgd"]["weight_decay"],
+        )
+    elif settings["optimizer"].lower() == "rmsprop":
+        optimizer = RMSprop(
+            model.parameters(),
+            lr=settings["rmsprop"]["learn_rate"],
+            weight_decay=settings["rmsprop"]["weight_decay"],
+        )
+    elif settings["optimizer"].lower() == "rmsprop":
+        optimizer = RMSprop(
+            model.parameters(),
+            lr=settings["rmsprop"]["learn_rate"],
+            weight_decay=settings["rmsprop"]["weight_decay"],
+        )
+    elif settings["optimizer"].lower() == "adadelta":
+        optimizer = Adadelta(
+            model.parameters(),
+            lr=settings["rmsprop"]["learn_rate"],
+            weight_decay=settings["rmsprop"]["weight_decay"],
+        )
 
-        optimizer.zero_grad()
+    optimizer.zero_grad()
 
     if settings["scheduler"].lower() == "plateau":
         scheduler = ReduceLROnPlateau(

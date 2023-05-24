@@ -27,6 +27,9 @@ class DKTDataset(torch.utils.data.Dataset):
         # The indexed columns
         self.index_column = settings["embedding_columns"]
 
+        # The indexed columns
+        self.non_index_column = settings["non_embedding_columns"]
+
     def __getitem__(self, index: int) -> dict:
         """
         Gets data in index
@@ -54,6 +57,9 @@ class DKTDataset(torch.utils.data.Dataset):
         row_data[self.predict_column] = torch.tensor(
             row[self.predict_column], dtype=torch.int
         )
+
+        for i in self.non_index_column:
+            row_data[i] = torch.tensor(row[i])
 
         # Generate mask
         seq_len = len(list(row.values())[0])

@@ -32,7 +32,9 @@ def objective(trial):
         default_settings["max_seq_len"] = trial.suggest_int(
             "max_seq_len", 4, 40, log=False
         )
-    # default_settings['optimizer'] = trial.suggest_categorical("optimizer", ["adam", "SGD", "RMSprop", "Adadelta"])
+    default_settings["optimizer"] = trial.suggest_categorical(
+        "optimizer", ["adam", "SGD", "RMSprop", "Adadelta"]
+    )
 
     # 2. special hyperparameters
     if model_name == "lgcn":

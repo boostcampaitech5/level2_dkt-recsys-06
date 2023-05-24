@@ -48,7 +48,7 @@ def set_basic_settings(settings: dict) -> None:
     """
 
     # Check if GPU is available
-    if not torch.cuda.is_available() and settings["cuda"] == "cuda":
+    if not torch.cuda.is_available() and settings["device"] == "cuda":
         print("Cuda not Found")
         print("Setting Device to CPU")
 
