@@ -58,9 +58,9 @@
     "epoch": 10,
     "batch_size": 16,
     "num_workers": 1,
-    "wandb_activate" : 1,
+    "wandb_activate" : true,
     "patience" : 10,
-    "best_model_activate": 1,
+    "best_model_activate": true,
 
 
     "adam": {
