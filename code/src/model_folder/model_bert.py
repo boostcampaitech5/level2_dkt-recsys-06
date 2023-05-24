@@ -48,7 +48,7 @@ class BidirectionalEncoderRepresentationsfromTransformers(nn.Module):
         self.encoder = BertModel(self.config)
 
         # output dense layer
-        self.output_lin = MultiLayerPerceptron(self.output_dim, self.dense_layer_dim)
+        self.output_lin = MultiLayerPerceptron(self.input_dim, self.dense_layer_dim)
 
         return
 
