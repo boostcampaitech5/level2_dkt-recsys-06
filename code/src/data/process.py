@@ -21,8 +21,6 @@ def index_data(data: dict, settings: dict) -> None:
         if settings["lgcn_embedding_activate"] and col == "question_id":
             data["train"][col] = data["train"][col].map(data["node2idx"])
             data["test"][col] = data["test"][col].map(data["node2idx"])
-            data["train"]["user_id"] = data["train"]["user_id"].map(data["node2idx"])
-            data["test"]["user_id"] = data["test"][col].map(data["node2idx"])
             continue
         # Create label encoder and fit unique values
         le = LabelEncoder()
