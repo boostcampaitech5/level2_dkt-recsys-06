@@ -374,7 +374,7 @@ class SaveSetting:
         return
 
 
-def setup() -> tuple[dict, dict]:
+def setup(silence=False) -> tuple[dict, dict]:
     """
     Setups settings and returns setting/unprocessed
 
@@ -382,7 +382,10 @@ def setup() -> tuple[dict, dict]:
         data(dict): Dictionary containing the unprocessed data dataframes
         settings(dict): Dictionary containing the settings
     """
-
+    # print disable
+    if silence:
+        global print
+        print = str
     # Changes directory to parent directory
     os.chdir("..")
 

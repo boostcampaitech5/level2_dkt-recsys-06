@@ -90,7 +90,7 @@ class DKTDataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
-def data_split(data: dict, settings: dict, num_kfolds: int) -> None:
+def data_split(data: dict, settings: dict, num_kfolds: int, silence=False) -> None:
     """
     Splits train data to train data and validation data
 
@@ -100,7 +100,10 @@ def data_split(data: dict, settings: dict, num_kfolds: int) -> None:
         num_kfolds(int): The number of folds to split.
                          If smaller than 2, then split with "train_valid_split".
     """
-
+    # print disable
+    if silence:
+        global print
+        print = str
     print("Splitting dataset...")
 
     # Split by train_valid_split
@@ -238,7 +241,7 @@ def data_split(data: dict, settings: dict, num_kfolds: int) -> None:
     return
 
 
-def create_datasets(data: dict, settings: dict, k: int) -> dict:
+def create_datasets(data: dict, settings: dict, k: int, silence=False) -> dict:
     """
     Creates datasets using the train, valid, test data
 
@@ -250,7 +253,10 @@ def create_datasets(data: dict, settings: dict, k: int) -> dict:
     Returns:
         dataset(dict): Dictionary containing loaded datasets
     """
-
+    # print disable
+    if silence:
+        global print
+        print = str
     # For graph_based models, omit this function
     if settings["is_graph_model"]:
         dataset = {
@@ -275,7 +281,7 @@ def create_datasets(data: dict, settings: dict, k: int) -> dict:
     return dataset
 
 
-def create_dataloader(dataset: dict, settings: dict) -> dict:
+def create_dataloader(dataset: dict, settings: dict, tune=False, silence=False) -> dict:
     """
     Creates dataloader from datasets.
 
@@ -285,7 +291,10 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
     Returns:
         dataloader(dict): Dictionary loaded dataloaders.
     """
-
+    # print disable
+    if silence:
+        global print
+        print = str
     print("Creating Dataloader...")
 
     dataloader = dict()
@@ -319,5 +328,6 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
 
     print("Created Dataloader!")
     print()
-
+    if tune:
+        return dataloader, settings
     return dataloader

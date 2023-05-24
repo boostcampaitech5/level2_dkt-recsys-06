@@ -166,7 +166,7 @@ def get_edge_label_dict(data: pd.DataFrame, node2idx: dict, device: str) -> dict
     return dict(edge=edges.to(device), label=labels.to(device))
 
 
-def process_data(data: dict, settings: dict) -> None:
+def process_data(data: dict, settings: dict, silence=False) -> None:
     """
     Merges / Drops columns / Indexes from data in order
 
@@ -174,7 +174,9 @@ def process_data(data: dict, settings: dict) -> None:
         data(dict): Dictionary containing the unprocessed dataframes
         settings(dict): Dictionary containing the settings
     """
-
+    if silence:
+        global print
+        print = str
     # Modify data
     print("Modifing Data...")
 

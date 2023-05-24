@@ -23,7 +23,7 @@ class RMSELoss(nn.Module):
 
 
 def run_model(
-    dataloader: dict, settings: dict, model, save_settings
+    dataloader: dict, settings: dict, model, save_settings, tune=False, silence=False
 ) -> tuple[list, dict]:
     """
     Runs model through train, valid, and submit.
@@ -37,6 +37,10 @@ def run_model(
         predict_data (list): Prediction results of test data to submit
         results (dict): Dictionary containing the result metrics of training
     """
+    # print disable
+    if silence:
+        global print
+        print = str
 
     # Set loss function
     if settings["loss_fn"].lower() == "rmse":
@@ -135,7 +139,8 @@ def run_model(
                     valid_auc_epoch=valid_auc,
                 )
             )
-
+    if tune:
+        return valid_auc
     print()
 
     print("Trained Model!")
