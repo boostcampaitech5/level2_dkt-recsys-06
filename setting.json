@@ -23,35 +23,22 @@
     "seed": 42,
     "device": "cuda",
 
-    "fixed_train_columns": [
-        "user_id",
-        "question_id",
-        "answer_code"
-    ],
+    "fixed_train_columns": ["user_id", "question_id", "answer_code"],
 
-    "fixed_embedding_columns": [
-        "question_id"
-    ],
+    "fixed_embedding_columns": ["question_id"],
 
-    "selective_train_columns": [
-        "test_id",
-        "knowledge_tag"
-    ],
+    "selective_train_columns": ["test_id", "knowledge_tag"],
 
-    "selective_embedding_columns": [
-        "test_id",
-        "knowledge_tag"
-    ],
+    "selective_embedding_columns": ["test_id", "knowledge_tag"],
 
     "predict_column": "answer_code",
-
 
     "train_valid_split": 0.9,
     "max_train_length": 100,
     "extra_split": false,
 
-
     "model_name": "lstm_attn",
+
     "loss_fn": "BCEWLL",
     "optimizer": "ADAM",
     "scheduler": "plateau",
@@ -62,10 +49,9 @@
     "patience" : 10,
     "best_model_activate": true,
 
-
     "adam": {
-        "learn_rate": 0.0001,
-        "weight_decay": 0.01
+        "learn_rate": 0.01,
+        "weight_decay": 0
     },
 
     "sgd": {
@@ -83,14 +69,12 @@
         "weight_decay": 0.01
     },
 
-
-    "plateau":   {
+    "plateau": {
         "patience": 10,
         "factor": 0.5,
         "mode": "max",
         "verbose": true
     },
-
 
     "lstm": {
         "embedding_dim": 21,
@@ -101,7 +85,7 @@
         "dense_layer_dim": [16, 4]
     },
 
-    "lstm_attn":    {
+    "lstm_attn": {
         "embedding_dim": 21,
         "input_dim": 64,
         "output_dim": 64,
