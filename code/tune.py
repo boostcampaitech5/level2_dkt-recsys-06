@@ -36,7 +36,7 @@ def objective(trial):
 
     # 2. special hyperparameters
     if model_name == "lgcn":
-        default_settings["alpha"] = trial.suggest_float("drop_out", 0.0, 1.0, log=False)
+        default_settings["alpha"] = trial.suggest_float("alpha", 0.0, 1.0, log=False)
     elif model_name == "lstm_attn":
         default_settings["drop_out"] = trial.suggest_float(
             "drop_out", 0.0, 1.0, log=False

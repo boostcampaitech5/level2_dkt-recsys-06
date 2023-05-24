@@ -1,7 +1,9 @@
 import pandas as pd
-from .data_modify import age_average_fill_na, average_fill_na, create_feature_test_cat
 from sklearn.preprocessing import LabelEncoder
 import torch
+
+
+from .data_modify import *
 
 
 def index_data(data: dict, settings: dict) -> None:
@@ -54,7 +56,7 @@ def process_lstm(data: dict) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -72,7 +74,7 @@ def process_lstm_attn(data) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -90,7 +92,7 @@ def process_bert(data) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
