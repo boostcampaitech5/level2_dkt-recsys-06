@@ -9,6 +9,7 @@ from torch.nn.functional import sigmoid
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from transformers import get_linear_schedule_with_warmup
 import wandb
+import lightgbm
 
 
 class RMSELoss(nn.Module):
@@ -22,7 +23,9 @@ class RMSELoss(nn.Module):
         return loss
 
 
-def run_model(dataloader: dict, settings: dict, model, save_settings):
+def run_model(
+    dataloader: dict, settings: dict, model, save_settings, dataset, data: dict
+):
     """
     Runs model through train, valid, and submit.
 
@@ -30,6 +33,9 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
         dataloader(dict): Dictionary containing the dictionary.
         settings(dict): Dictionary containing the settings.
         model(nn.Module): Model used to train
+
+        data : (Optional) Only use for LightGBM.
+        dataset : (Optional) Only use for LightGBM.
     """
 
     # Set loss function
@@ -41,65 +47,52 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
         loss_fn = torch.nn.BCEWithLogitsLoss(reduction="none")
 
     # Set optimizer
-    if settings["optimizer"].lower() == "adam":
-        optimizer = Adam(
-            model.parameters(),
-            lr=settings["adam"]["learn_rate"],
-            weight_decay=settings["adam"]["weight_decay"],
-        )
+    if settings["model_name"] == "lgbm":
+        pass
+    else:
+        if settings["optimizer"].lower() == "adam":
+            optimizer = Adam(
+                model.parameters(),
+                lr=settings["adam"]["learn_rate"],
+                weight_decay=settings["adam"]["weight_decay"],
+            )
 
-        optimizer.zero_grad()
+            optimizer.zero_grad()
 
-    if settings["scheduler"].lower() == "plateau":
-        scheduler = ReduceLROnPlateau(
-            optimizer,
-            patience=settings["plateau"]["patience"],
-            factor=settings["plateau"]["factor"],
-            mode=settings["plateau"]["mode"],
-            verbose=settings["plateau"]["verbose"],
-        )
+        if settings["scheduler"].lower() == "plateau":
+            scheduler = ReduceLROnPlateau(
+                optimizer,
+                patience=settings["plateau"]["patience"],
+                factor=settings["plateau"]["factor"],
+                mode=settings["plateau"]["mode"],
+                verbose=settings["plateau"]["verbose"],
+            )
 
     print("Training Model...")
     print()
 
     best_auc = -1
 
-    # Set epoch for training
-    for epoch in range(settings["epoch"]):
-        # Change model state to train
-        model.train()
-
-        # Get average loss while training
-        if not settings["is_graph_model"]:
-            train_auc, train_acc = train_model(
-                dataloader, model, loss_fn, optimizer, scheduler, settings
-            )
-        else:
-            train_auc, train_acc = train_graph_model(
-                dataloader["train"], model, optimizer
-            )
-
-        # Change model state to evaluation
-        model.eval()
-
-        # Get average loss using validation set
-        if not settings["is_graph_model"]:
-            valid_auc, valid_acc = validate_model(dataloader, model, loss_fn, settings)
-        else:
-            valid_auc, valid_acc = validate_graph_model(dataloader["valid"], model)
-
-        if valid_auc > best_auc:
-            best_auc = valid_auc
-
-        scheduler.step(best_auc)
-
-        # Print average loss of train/valid set
-        print(
-            f"Epoch: {epoch + 1}\nTrain acc: {train_acc}\tTrain auc: {train_auc}\nValid acc: {valid_acc}\t Valid auc: {valid_auc}\n"
+    if settings["model_name"] == "lgbm":
+        model = lightgbm.train(
+            settings["lgbm"]["params"],
+            dataset["train"],
+            valid_sets=[dataset["train"], dataset["valid"]],
+            num_boost_round=settings["lgbm"]["num_boost_round"],
+            callbacks=[
+                lightgbm.early_stopping(settings["lgbm"]["early_stopping_rounds"]),
+                lightgbm.log_evaluation(settings["lgbm"]["verbose_eval"]),
+            ],
         )
 
+        train_auc, train_acc = train_lgbm(data, model)
+
+        valid_auc, valid_acc = validate_lgbm(data, model)
+        print(
+            f"Train acc: {train_acc}\tTrain auc: {train_auc}\nValid acc: {valid_acc}\t Valid auc: {valid_auc}\n"
+        )
         save_settings.append_log(
-            f"Epoch: {epoch + 1}\nTrain acc: {train_acc}\tTrain auc: {train_auc}\nValid acc: {valid_acc}\t Valid auc: {valid_auc}"
+            f"Train acc: {train_acc}\tTrain auc: {train_auc}\nValid acc: {valid_acc}\t Valid auc: {valid_auc}"
         )
         if settings["wandb_activate"]:
             wandb.log(
@@ -111,6 +104,55 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
                 )
             )
 
+    else:
+        # Set epoch for training
+        for epoch in range(settings["epoch"]):
+            # Change model state to train
+            model.train()
+
+            # Get average loss while training
+            if settings["is_graph_model"]:
+                train_auc, train_acc = train_graph_model(
+                    dataloader["train"], model, optimizer
+                )
+            else:
+                train_auc, train_acc = train_model(
+                    dataloader, model, loss_fn, optimizer, scheduler, settings
+                )
+            # Change model state to evaluation
+            model.eval()
+
+            # Get average loss using validation set
+            if settings["is_graph_model"]:
+                valid_auc, valid_acc = validate_graph_model(dataloader["valid"], model)
+            else:
+                valid_auc, valid_acc = validate_model(
+                    dataloader, model, loss_fn, settings
+                )
+
+            if valid_auc > best_auc:
+                best_auc = valid_auc
+
+            scheduler.step(best_auc)
+
+            # Print average loss of train/valid set
+            print(
+                f"Epoch: {epoch + 1}\nTrain acc: {train_acc}\tTrain auc: {train_auc}\nValid acc: {valid_acc}\t Valid auc: {valid_auc}\n"
+            )
+
+            save_settings.append_log(
+                f"Epoch: {epoch + 1}\nTrain acc: {train_acc}\tTrain auc: {train_auc}\nValid acc: {valid_acc}\t Valid auc: {valid_auc}"
+            )
+            if settings["wandb_activate"]:
+                wandb.log(
+                    dict(
+                        train_acc_epoch=train_acc,
+                        train_auc_epoch=train_auc,
+                        valid_acc_epoch=valid_acc,
+                        valid_auc_epoch=valid_auc,
+                    )
+                )
+
     print()
 
     print("Trained Model!")
@@ -119,19 +161,28 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
     print("Getting Final Results...")
 
     # Get final results
-    if not settings["is_graph_model"]:
-        train_df, train_final_auc, train_final_acc = get_df_result(
-            dataloader["train"], model, loss_fn, settings
-        )
-        valid_df, valid_final_auc, valid_final_acc = get_df_result(
-            dataloader["valid"], model, loss_fn, settings
-        )
-    else:
+    if settings["is_graph_model"]:
         train_df, train_final_auc, train_final_acc = graph_get_df_result(
             dataloader["train"], model
         )
         valid_df, valid_final_auc, valid_final_acc = graph_get_df_result(
             dataloader["valid"], model
+        )
+
+    elif settings["model_name"] == "lgbm":
+        train_df, train_final_auc, train_final_acc = lgbm_get_df_result(
+            data["train"], data["y_train"], model
+        )
+        valid_df, valid_final_auc, valid_final_acc = lgbm_get_df_result(
+            data["valid"], data["y_valid"], model
+        )
+
+    else:
+        train_df, train_final_auc, train_final_acc = get_df_result(
+            dataloader["train"], model, loss_fn, settings
+        )
+        valid_df, valid_final_auc, valid_final_acc = get_df_result(
+            dataloader["valid"], model, loss_fn, settings
         )
 
     save_settings.save_train_valid(train_df, valid_df)
@@ -147,15 +198,18 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
     print("Saving Model/State Dict...")
 
     # Save model and state_dict, loss, settings
-    save_settings.save_model(model)
-    save_settings.save_statedict(
-        model,
-        train_final_auc,
-        train_final_acc,
-        valid_final_auc,
-        valid_final_acc,
-        settings,
-    )
+    save_settings.save_model(model, settings)
+    if settings["model_name"] == "lgbm":
+        pass
+    else:
+        save_settings.save_statedict(
+            model,
+            train_final_auc,
+            train_final_acc,
+            valid_final_auc,
+            valid_final_acc,
+            settings,
+        )
 
     print("Saved Model/State Dict!")
     print()
@@ -163,10 +217,13 @@ def run_model(dataloader: dict, settings: dict, model, save_settings):
     print("Predicting Results...")
 
     # Get predicted data for submission
-    if not settings["is_graph_model"]:
-        predict_data = test_model(dataloader, model, settings)
-    else:
+    if settings["is_graph_model"]:
         predict_data = test_graph_model(dataloader["test"], model)
+    elif settings["model_name"] == "lgbm":
+        predict_data = test_lgbm(data["test"], model)
+    else:
+        predict_data = test_model(dataloader, model, settings)
+
     print("Predicted Results!")
     print()
 
@@ -355,6 +412,25 @@ def test_graph_model(test_data: dict, model: nn.Module) -> list:
     return list(pred)
 
 
+def train_lgbm(data: dict, model):
+    preds = model.predict(data["train"])
+    auc = roc_auc_score(data["y_train"], preds)
+    acc = accuracy_score(data["y_train"], np.where(preds >= 0.5, 1, 0))
+    return auc, acc
+
+
+def validate_lgbm(data: dict, model):
+    preds = model.predict(data["valid"])
+    auc = roc_auc_score(data["y_valid"], preds)
+    acc = accuracy_score(data["y_valid"], np.where(preds >= 0.5, 1, 0))
+    return auc, acc
+
+
+def test_lgbm(data, model):
+    pred = list(model.predict(data))
+    return pred
+
+
 def get_df_result(dataloader, model, loss_fn, settings):
     """
     Gets prediction to get as output csv
@@ -412,5 +488,15 @@ def graph_get_df_result(dataloader: dict, model: nn.Module) -> tuple:
         auc = roc_auc_score(y_true=label, y_score=prob)
 
     save_df = pd.Series(prob)
+
+    return save_df, auc, acc
+
+
+def lgbm_get_df_result(data, y_data, model):
+    pred = model.predict(data)
+    auc = roc_auc_score(y_data, pred)
+    acc = accuracy_score(y_data, np.where(pred >= 0.5, 1, 0))
+
+    save_df = pd.Series(pred)
 
     return save_df, auc, acc

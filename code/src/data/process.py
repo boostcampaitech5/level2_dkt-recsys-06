@@ -1,5 +1,5 @@
 import pandas as pd
-from .data_modify import age_average_fill_na, average_fill_na, create_feature_test_cat
+from .data_modify import *
 from sklearn.preprocessing import LabelEncoder
 import torch
 
@@ -180,6 +180,24 @@ def get_edge_label_dict(data: pd.DataFrame, node2idx: dict, device: str) -> dict
     return dict(edge=edges.to(device), label=labels.to(device))
 
 
+def process_lgbm(data: dict) -> None:
+    """
+    Processes data for the LGBM
+
+    Uses different features with the other models
+
+    Parameters:
+        data(dict): Dictionary containing the unprocessed dataframes
+    """
+    data["train"] = data["train"].sort_values(by=["user_id", "timestamp"], axis=0)
+    data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
+
+    # Create a feature called test_cat
+    create_feature_test_cat(data)
+
+    return
+
+
 def process_data(data: dict, settings: dict) -> None:
     """
     Merges / Drops columns / Indexes from data in order
@@ -212,6 +230,25 @@ def process_data(data: dict, settings: dict) -> None:
         data["test"] = get_edge_label_dict(
             data["test"], node2idx=node2idx, device=settings["device"]
         )
+        return
+
+    elif settings["model_name"].lower() == "lgbm":
+        process_lgbm(data)
+        count_users_correct_answer(data)
+        count_users_total_answer(data)
+
+        data["train"]["user_acc"] = (
+            data["train"]["user_correct_answer"] / data["train"]["user_total_answer"]
+        )
+        data["test"]["user_acc"] = (
+            data["test"]["user_correct_answer"] / data["test"]["user_total_answer"]
+        )
+
+        create_test_mean_sum(data)
+        create_tag_mean_sum(data)
+
+        data["train"] = data["train"][settings["train_columns"]]
+        data["test"] = data["test"][settings["train_columns"]]
         return
 
     else:

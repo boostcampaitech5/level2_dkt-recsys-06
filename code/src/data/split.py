@@ -4,6 +4,7 @@ import random
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import TensorDataset, DataLoader
+import lightgbm
 
 
 class DKTDataset(torch.utils.data.Dataset):
@@ -102,35 +103,72 @@ def data_split(data: dict, settings: dict) -> None:
     print("Splitting dataset...")
 
     if not settings["is_graph_model"]:
-        # Group by user and combine all columns
-        column_list = data["train"].columns
-        data["train"] = (
-            data["train"]
-            .groupby("user_id")
-            .apply(lambda x: {c: x[c].values for c in column_list if c != "user_id"})
-        )
-        data["test"] = (
-            data["test"]
-            .groupby("user_id")
-            .apply(lambda x: {c: x[c].values for c in column_list if c != "user_id"})
-        )
+        if settings["model_name"] == "lgbm":
+            users_train = list(
+                zip(
+                    data["train"]["user_id"].value_counts().index,
+                    data["train"]["user_id"].value_counts(),
+                )
+            )
+            random.shuffle(users_train)
 
-        # Change data to numpy arrays
-        data["train"] = data["train"].to_numpy()
-        data["test"] = data["test"].to_numpy()
+            train_size = int(len(data["train"]) * settings["train_valid_split"])
+            sum_of_train_data = 0
+            user_ids = []
 
-        # Fix to default seed 0
-        # This is needed when ensembling both files
-        ## Having both files with different train and valid datasets will prevent us from making a loss estimate
-        random.seed(0)
+            for user_id, count in users_train:
+                sum_of_train_data += count
+                if train_size < sum_of_train_data:
+                    break
+                user_ids.append(user_id)
 
-        # Shuffle the train dataset randomly
-        random.shuffle(data["train"])
+            data["valid"] = data["train"][
+                data["train"]["user_id"].isin(user_ids) == False
+            ]
+            data["train"] = data["train"][data["train"]["user_id"].isin(user_ids)]
 
-        # Divide data by ratio
-        train_size = int(len(data["train"]) * settings["train_valid_split"])
-        data["valid"] = data["train"][train_size:]
-        data["train"] = data["train"][:train_size]
+            # valid데이터셋은 각 유저의 마지막 interaction만 추출
+            data["valid"] = data["valid"][
+                data["valid"]["user_id"] != data["valid"]["user_id"].shift(-1)
+            ]
+            data["test"] = data["test"][
+                data["test"]["user_id"] != data["test"]["user_id"].shift(-1)
+            ]
+
+        else:
+            # Group by user and combine all columns
+            column_list = data["train"].columns
+            data["train"] = (
+                data["train"]
+                .groupby("user_id")
+                .apply(
+                    lambda x: {c: x[c].values for c in column_list if c != "user_id"}
+                )
+            )
+            data["test"] = (
+                data["test"]
+                .groupby("user_id")
+                .apply(
+                    lambda x: {c: x[c].values for c in column_list if c != "user_id"}
+                )
+            )
+
+            # Change data to numpy arrays
+            data["train"] = data["train"].to_numpy()
+            data["test"] = data["test"].to_numpy()
+
+            # Fix to default seed 0
+            # This is needed when ensembling both files
+            ## Having both files with different train and valid datasets will prevent us from making a loss estimate
+            random.seed(0)
+
+            # Shuffle the train dataset randomly
+            random.shuffle(data["train"])
+
+            # Divide data by ratio
+            train_size = int(len(data["train"]) * settings["train_valid_split"])
+            data["valid"] = data["train"][train_size:]
+            data["train"] = data["train"][:train_size]
 
     else:
         np.random.seed(0)
@@ -173,9 +211,23 @@ def create_datasets(data: dict, settings: dict) -> dict:
     if settings["is_graph_model"]:
         dataset = {"train": data["train"], "valid": data["valid"], "test": data["test"]}
         return dataset
+    elif settings["model_name"] == "lgbm":
+        data["y_train"] = data["train"]["answer_code"]
+        data["y_valid"] = data["valid"]["answer_code"]
+
+        data["train"] = data["train"].drop(["answer_code"], axis=1)
+        data["valid"] = data["valid"].drop(["answer_code"], axis=1)
+
+        data["test"] = data["test"].drop(["answer_code"], axis=1)
+
+        dataset = {
+            "train": lightgbm.Dataset(data["train"], data["y_train"]),
+            "valid": lightgbm.Dataset(data["valid"], data["y_valid"]),
+            "test": data["test"],
+        }
+        return dataset
 
     print("Creating Datasets!")
-
     dataset = dict()
 
     # Create datasets using class
@@ -203,7 +255,14 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
     print("Creating Dataloader...")
 
     dataloader = dict()
-    if not settings["is_graph_model"]:
+    if settings["is_graph_model"]:
+        dataloader["train"] = dataset["train"]
+        dataloader["valid"] = dataset["valid"]
+        dataloader["test"] = dataset["test"]
+    elif settings["model_name"] == "lgbm":
+        print("LightGBM doesn't require DataLoader")
+        pass
+    else:
         # Create dataloader
         dataloader["train"] = DataLoader(
             dataset["train"],
@@ -226,10 +285,6 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
             num_workers=settings["num_workers"],
             pin_memory=False,
         )
-    else:
-        dataloader["train"] = dataset["train"]
-        dataloader["valid"] = dataset["valid"]
-        dataloader["test"] = dataset["test"]
 
     print("Created Dataloader!")
     print()

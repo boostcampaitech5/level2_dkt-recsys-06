@@ -252,7 +252,7 @@ class SaveSetting:
 
         return
 
-    def save_model(self, model) -> None:
+    def save_model(self, model, settings) -> None:
         """
         Saves model as file
 
@@ -264,7 +264,10 @@ class SaveSetting:
         model_path = os.path.join(self.model_folder_path, self.name + f"_model")
 
         # Save model to path
-        torch.save(model, model_path)
+        if settings["model_name"] == "lgbm":
+            model.save_model(model_path)
+        else:
+            torch.save(model, model_path)
 
         return
 
@@ -295,6 +298,7 @@ class SaveSetting:
         )
 
         # Save all data as a dictionary to path
+        # If you want to reload the LightGBM, use 'lightgbm.Booster(model_file='model.txt')'
         torch.save(
             {
                 "state_dict": model.state_dict(),

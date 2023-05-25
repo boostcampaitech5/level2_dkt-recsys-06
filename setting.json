@@ -22,7 +22,6 @@
 
     "fixed_train_columns": [
         "user_id",
-        "question_id",
         "answer_code"
     ],
 
@@ -31,8 +30,14 @@
     ],
 
     "selective_train_columns": [
-        "test_id",
-        "knowledge_tag"
+        "knowledge_tag",
+        "user_correct_answer",
+        "user_total_answer",
+        "user_acc",
+        "test_mean",
+        "test_sum",
+        "tag_mean",
+        "tag_sum"
     ],
 
     "selective_embedding_columns": [
@@ -43,14 +48,14 @@
     "predict_column": "answer_code",
 
 
-    "train_valid_split": 0.99,
+    "train_valid_split": 0.7,
 
 
-    "model_name": "lgcn",
+    "model_name": "lgbm",
     "loss_fn": "BCEWLL",
     "optimizer": "ADAM",
     "scheduler": "plateau",
-    "epoch": 10,
+    "epoch": 1,
     "batch_size": 16,
     "num_workers": 1,
     "wandb_activate" : 1, 
@@ -100,5 +105,15 @@
         "embedding_dim": 64,
         "num_layers": 1,
         "alpha": 0
+    },
+
+    "lgbm": {
+        "params":{
+            "objective" : "binary",
+            "learning_rate": 0.01
+        },
+        "verbose_eval": 100,
+        "num_boost_round":1200,
+        "early_stopping_rounds":100
     }
 }

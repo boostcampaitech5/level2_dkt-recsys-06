@@ -29,7 +29,9 @@ def main() -> None:
     model = create_model(data, settings)
 
     # Run model
-    predicted_data = run_model(dataloader, settings, model, save_settings)
+    predicted_data = run_model(
+        dataloader, settings, model, save_settings, dataset, data
+    )
 
     # Save predicted data as csv
     save_settings.save_submit(predicted_data)
