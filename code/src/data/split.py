@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 import lightgbm
@@ -27,6 +27,9 @@ class DKTDataset(torch.utils.data.Dataset):
 
         # The indexed columns
         self.index_column = settings["embedding_columns"]
+
+        # The indexed columns
+        self.non_index_column = settings["non_embedding_columns"]
 
     def __getitem__(self, index: int) -> dict:
         """
@@ -55,6 +58,9 @@ class DKTDataset(torch.utils.data.Dataset):
         row_data[self.predict_column] = torch.tensor(
             row[self.predict_column], dtype=torch.int
         )
+
+        for i in self.non_index_column:
+            row_data[i] = torch.tensor(row[i])
 
         # Generate mask
         seq_len = len(list(row.values())[0])
@@ -91,103 +97,239 @@ class DKTDataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
-def data_split(data: dict, settings: dict) -> None:
+def data_split(data: dict, settings: dict, num_kfolds: int, silence=False) -> None:
     """
     Splits train data to train data and validation data
 
     Parameters:
         data(dict): Dictionary containing the processed data
         settings(dict): Dictionary containing the settings
+        num_kfolds(int): The number of folds to split.
+                         If smaller than 2, then split with "train_valid_split".
     """
-
+    # print disable
+    if silence:
+        global print
+        print = str
     print("Splitting dataset...")
 
-    if not settings["is_graph_model"]:
-        if settings["model_name"] == "lgbm":
-            users_train = list(
-                zip(
-                    data["train"]["user_id"].value_counts().index,
-                    data["train"]["user_id"].value_counts(),
+    # Split by train_valid_split
+    if num_kfolds <= 1:
+        if not settings["is_graph_model"]:
+            if settings["model_name"] == "lgbm":
+                users_train = list(
+                    zip(
+                        data["train"]["user_id"].value_counts().index,
+                        data["train"]["user_id"].value_counts(),
+                    )
                 )
-            )
-            random.shuffle(users_train)
+                random.shuffle(users_train)
 
-            train_size = int(len(data["train"]) * settings["train_valid_split"])
-            sum_of_train_data = 0
-            user_ids = []
+                train_size = int(len(data["train"]) * settings["train_valid_split"])
+                sum_of_train_data = 0
+                user_ids = []
 
-            for user_id, count in users_train:
-                sum_of_train_data += count
-                if train_size < sum_of_train_data:
-                    break
-                user_ids.append(user_id)
+                for user_id, count in users_train:
+                    sum_of_train_data += count
+                    if train_size < sum_of_train_data:
+                        break
+                    user_ids.append(user_id)
 
-            data["valid"] = data["train"][
-                data["train"]["user_id"].isin(user_ids) == False
-            ]
-            data["train"] = data["train"][data["train"]["user_id"].isin(user_ids)]
+                data["valid"] = data["train"][
+                    data["train"]["user_id"].isin(user_ids) == False
+                ]
+                data["train_0"] = data["train"][data["train"]["user_id"].isin(user_ids)]
 
-            # valid데이터셋은 각 유저의 마지막 interaction만 추출
-            data["valid"] = data["valid"][
-                data["valid"]["user_id"] != data["valid"]["user_id"].shift(-1)
-            ]
-            data["test"] = data["test"][
-                data["test"]["user_id"] != data["test"]["user_id"].shift(-1)
-            ]
+                # valid데이터셋은 각 유저의 마지막 interaction만 추출
+                data["valid_0"] = data["valid"][
+                    data["valid"]["user_id"] != data["valid"]["user_id"].shift(-1)
+                ]
+                data["test"] = data["test"][
+                    data["test"]["user_id"] != data["test"]["user_id"].shift(-1)
+                ]
+            else:
+                # Group by user and combine all columns
+                def data_split_by_seq(input_df: pd.DataFrame):
+                    input_df = input_df.iloc[-settings["max_train_length"] :]
+                    return input_df.groupby(
+                        np.flip(np.arange(len(input_df.index)))
+                        // settings[settings["model_name"].lower()]["max_seq_len"]
+                    ).apply(
+                        lambda x: {
+                            c: x[c].values for c in column_list if c != "user_id"
+                        }
+                    )
+
+                column_list = data["train"].columns
+                if settings["extra_split"]:
+                    data["train"] = (
+                        data["train"].groupby("user_id").apply(data_split_by_seq)
+                    )
+                else:
+                    data["train"] = (
+                        data["train"]
+                        .groupby("user_id")
+                        .apply(
+                            lambda x: {
+                                c: x[c].values for c in column_list if c != "user_id"
+                            }
+                        )
+                    )
+                data["test"] = (
+                    data["test"]
+                    .groupby("user_id")
+                    .apply(
+                        lambda x: {
+                            c: x[c].values for c in column_list if c != "user_id"
+                        }
+                    )
+                )
+
+                # Change data to numpy arrays
+                data["train"] = data["train"].to_numpy()
+                data["test"] = data["test"].to_numpy()
+
+                # Fix to default seed 0
+                # This is needed when ensembling both files
+                # Having both files with different train and valid datasets will prevent us from making a loss estimate
+                random.seed(0)
+
+                # Shuffle the train dataset randomly
+                random.shuffle(data["train"])
+
+                # Divide data by ratio
+                train_size = int(len(data["train"]) * settings["train_valid_split"])
+                data["valid_0"] = data["train"][train_size:]
+                data["train_0"] = data["train"][:train_size]
 
         else:
-            # Group by user and combine all columns
-            column_list = data["train"].columns
-            data["train"] = (
-                data["train"]
-                .groupby("user_id")
-                .apply(
-                    lambda x: {c: x[c].values for c in column_list if c != "user_id"}
-                )
+            np.random.seed(0)
+
+            # size : # of edge of train
+            size_all = len(data["train"]["label"])
+            train_size = int(size_all * settings["train_valid_split"])
+
+            edge_ids = np.arange(size_all)
+            edge_ids = np.random.permutation(edge_ids)
+
+            train_edge_ids = edge_ids[:train_size]
+            valid_edge_ids = edge_ids[train_size:]
+
+            edge, label = data["train"]["edge"], data["train"]["label"]
+
+            data["train_0"] = dict(
+                edge=edge[:, train_edge_ids], label=label[train_edge_ids]
             )
-            data["test"] = (
-                data["test"]
-                .groupby("user_id")
-                .apply(
-                    lambda x: {c: x[c].values for c in column_list if c != "user_id"}
-                )
+            data["valid_0"] = dict(
+                edge=edge[:, valid_edge_ids], label=label[valid_edge_ids]
             )
 
-            # Change data to numpy arrays
-            data["train"] = data["train"].to_numpy()
-            data["test"] = data["test"].to_numpy()
-
-            # Fix to default seed 0
-            # This is needed when ensembling both files
-            ## Having both files with different train and valid datasets will prevent us from making a loss estimate
-            random.seed(0)
-
-            # Shuffle the train dataset randomly
-            random.shuffle(data["train"])
-
-            # Divide data by ratio
-            train_size = int(len(data["train"]) * settings["train_valid_split"])
-            data["valid"] = data["train"][train_size:]
-            data["train"] = data["train"][:train_size]
-
+    # Split into K-folds
     else:
-        np.random.seed(0)
+        kf = KFold(n_splits=num_kfolds, shuffle=True, random_state=0)
+        if not settings["is_graph_model"]:
+            if settings["model_name"] == "lgbm":
+                users_train = list(
+                    zip(
+                        data["train"]["user_id"].value_counts().index,
+                        data["train"]["user_id"].value_counts(),
+                    )
+                )
+                random.shuffle(users_train)
 
-        # size : # of edge of train
-        size_all = len(data["train"]["label"])
-        train_size = int(size_all * settings["train_valid_split"])
+                train_size = int(len(data["train"]) * settings["train_valid_split"])
+                sum_of_train_data = 0
+                user_ids = []
 
-        edge_ids = np.arange(size_all)
-        edge_ids = np.random.permutation(edge_ids)
+                for user_id, count in users_train:
+                    sum_of_train_data += count
+                    if train_size < sum_of_train_data:
+                        break
+                    user_ids.append(user_id)
 
-        train_edge_ids = edge_ids[:train_size]
-        valid_edge_ids = edge_ids[train_size:]
+                data["valid"] = data["train"][
+                    data["train"]["user_id"].isin(user_ids) == False
+                ]
+                data["train"] = data["train"][data["train"]["user_id"].isin(user_ids)]
+                data["valid"] = data["valid"][
+                    data["valid"]["user_id"] != data["valid"]["user_id"].shift(-1)
+                ]
+                data["test"] = data["test"][
+                    data["test"]["user_id"] != data["test"]["user_id"].shift(-1)
+                ]
+                # Split into K-folds
+                for i, (train_idx, valid_idx) in enumerate(kf.split(data["train"])):
+                    data[f"train_{i}"] = data["train"][train_idx]
+                    data[f"valid_{i}"] = data["train"][valid_idx]
+            else:
+                # Group by user and combine all columns
+                def data_split_by_seq(input_df: pd.DataFrame):
+                    input_df = input_df.iloc[-settings["max_train_length"] :]
+                    return input_df.groupby(
+                        np.flip(np.arange(len(input_df.index)))
+                        // settings[settings["model_name"].lower()]["max_seq_len"]
+                    ).apply(
+                        lambda x: {
+                            c: x[c].values for c in column_list if c != "user_id"
+                        }
+                    )
 
-        edge, label = data["train"]["edge"], data["train"]["label"]
-        # label = label.to("cpu").detach().numpy()
+                # Group by user and combine all columns
+                column_list = data["train"].columns
+                if settings["extra_split"]:
+                    data["train"] = (
+                        data["train"].groupby("user_id").apply(data_split_by_seq)
+                    )
+                else:
+                    data["train"] = (
+                        data["train"]
+                        .groupby("user_id")
+                        .apply(
+                            lambda x: {
+                                c: x[c].values for c in column_list if c != "user_id"
+                            }
+                        )
+                    )
+                data["test"] = (
+                    data["test"]
+                    .groupby("user_id")
+                    .apply(
+                        lambda x: {
+                            c: x[c].values for c in column_list if c != "user_id"
+                        }
+                    )
+                )
 
-        data["train"] = dict(edge=edge[:, train_edge_ids], label=label[train_edge_ids])
-        data["valid"] = dict(edge=edge[:, valid_edge_ids], label=label[valid_edge_ids])
+                # Change data to numpy arrays
+                data["train"] = data["train"].to_numpy()
+                data["test"] = data["test"].to_numpy()
+
+                # Split data into K-folds
+                for i, (train_idx, valid_idx) in enumerate(kf.split(data["train"])):
+                    data[f"train_{i}"] = data["train"][train_idx]
+                    data[f"valid_{i}"] = data["train"][valid_idx]
+
+        else:
+            np.random.seed(0)
+
+            # size : # of edge of train
+            size_all = len(data["train"]["label"])
+
+            edge_ids = np.arange(size_all)
+            edge_ids = np.random.permutation(edge_ids)
+
+            edge, label = data["train"]["edge"], data["train"]["label"]
+
+            # Split data into K-folds
+            for i, (train_idx, valid_idx) in enumerate(kf.split(edge_ids)):
+                train_edge_ids = edge_ids[train_idx]
+                valid_edge_ids = edge_ids[valid_idx]
+                data[f"train_{i}"] = dict(
+                    edge=edge[:, train_edge_ids], label=label[train_edge_ids]
+                )
+                data[f"valid_{i}"] = dict(
+                    edge=edge[:, valid_edge_ids], label=label[valid_edge_ids]
+                )
 
     print("Splitted Data!")
     print()
@@ -195,44 +337,59 @@ def data_split(data: dict, settings: dict) -> None:
     return
 
 
-def create_datasets(data: dict, settings: dict) -> dict:
+def create_datasets(data: dict, settings: dict, k: int, silence=False) -> dict:
     """
     Creates datasets using the train, valid, test data
 
     Parameters:
         data(dict): Dictionary containing processed dataframes
         settings(dict): Dictionary containing the settings
+        k(int): The id of the fold to use for validation
 
     Returns:
         dataset(dict): Dictionary containing loaded datasets
     """
-
+    # print disable
+    if silence:
+        global print
+        print = str
     # For graph_based models, omit this function
     if settings["is_graph_model"]:
-        dataset = {"train": data["train"], "valid": data["valid"], "test": data["test"]}
+        dataset = {
+            "train": data[f"train_{k}"],
+            "valid": data[f"valid_{k}"],
+            "test": data["test"],
+        }
         return dataset
-    elif settings["model_name"] == "lgbm":
-        data["y_train"] = data["train"]["answer_code"]
-        data["y_valid"] = data["valid"]["answer_code"]
 
-        data["train"] = data["train"].drop(["answer_code"], axis=1)
-        data["valid"] = data["valid"].drop(["answer_code"], axis=1)
+    elif settings["model_name"] == "lgbm":
+        data[f"y_train_{k}"] = data[f"train_{k}"]["answer_code"]
+        data[f"y_valid_{k}"] = data[f"valid_{k}"]["answer_code"]
+
+        data[f"train_{k}"] = data[f"train_{k}"].drop(["answer_code"], axis=1)
+        data[f"valid_{k}"] = data[f"valid_{k}"].drop(["answer_code"], axis=1)
 
         data["test"] = data["test"].drop(["answer_code"], axis=1)
 
+        data["train"] = data[f"train_{k}"]
+        data["valid"] = data[f"valid_{k}"]
+
+        data["y_train"] = data[f"y_train_{k}"]
+        data["y_valid"] = data[f"y_valid_{k}"]
         dataset = {
-            "train": lightgbm.Dataset(data["train"], data["y_train"]),
-            "valid": lightgbm.Dataset(data["valid"], data["y_valid"]),
+            "train": lightgbm.Dataset(data[f"train_{k}"], data[f"y_train_{k}"]),
+            "valid": lightgbm.Dataset(data[f"valid_{k}"], data[f"y_valid_{k}"]),
             "test": data["test"],
         }
+
         return dataset
 
     print("Creating Datasets!")
     dataset = dict()
 
     # Create datasets using class
-    dataset["train"] = DKTDataset(data["train"], settings)
-    dataset["valid"] = DKTDataset(data["valid"], settings)
+    dataset["train"] = DKTDataset(data[f"train_{k}"], settings)
+    dataset["valid"] = DKTDataset(data[f"valid_{k}"], settings)
     dataset["test"] = DKTDataset(data["test"], settings)
 
     print("Created Datasets!")
@@ -241,7 +398,7 @@ def create_datasets(data: dict, settings: dict) -> dict:
     return dataset
 
 
-def create_dataloader(dataset: dict, settings: dict) -> dict:
+def create_dataloader(dataset: dict, settings: dict, tune=False, silence=False) -> dict:
     """
     Creates dataloader from datasets.
 
@@ -251,7 +408,10 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
     Returns:
         dataloader(dict): Dictionary loaded dataloaders.
     """
-
+    # print disable
+    if silence:
+        global print
+        print = str
     print("Creating Dataloader...")
 
     dataloader = dict()
@@ -288,5 +448,6 @@ def create_dataloader(dataset: dict, settings: dict) -> dict:
 
     print("Created Dataloader!")
     print()
-
+    if tune:
+        return dataloader, settings
     return dataloader

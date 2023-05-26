@@ -8,7 +8,8 @@
         "submit": "submit",
         "train": "train",
         "valid": "valid",
-        "ensemble": "ensemble"
+        "ensemble": "ensemble",
+        "best_model": "best_model"
     },
 
     "file_name": {
@@ -16,6 +17,8 @@
         "test": "2023-05-22_test_data"
     },
 
+    "save_name": "",
+    "num_kfolds": 1,
 
     "seed": 42,
     "device": "cuda",
@@ -25,9 +28,7 @@
         "answer_code"
     ],
 
-    "fixed_embedding_columns": [
-        "question_id"
-    ],
+    "fixed_embedding_columns": ["question_id"],
 
     "selective_train_columns": [
         "knowledge_tag",
@@ -40,15 +41,15 @@
         "tag_sum"
     ],
 
-    "selective_embedding_columns": [
-        "test_id",
-        "knowledge_tag"
-    ],
+    "selective_embedding_columns": ["test_id", "knowledge_tag"],
 
     "predict_column": "answer_code",
 
+    "train_valid_split": 0.9,
+    "max_train_length": 100,
+    "extra_split": false,
 
-    "train_valid_split": 0.7,
+
 
 
     "model_name": "lgbm",
@@ -58,39 +59,55 @@
     "epoch": 1,
     "batch_size": 16,
     "num_workers": 1,
-    "wandb_activate" : 1, 
-
+    "wandb_activate" : true,
+    "patience" : 10,
+    "best_model_activate": true,
 
     "adam": {
         "learn_rate": 0.01,
         "weight_decay": 0
     },
 
+    "sgd": {
+        "learn_rate": 0.0001,
+        "weight_decay": 0.01
+    },
 
-    "plateau":   {
+    "rmsprop": {
+        "learn_rate": 0.0001,
+        "weight_decay": 0.01
+    },
+
+    "adadelta": {
+        "learn_rate": 0.0001,
+        "weight_decay": 0.01
+    },
+
+    "plateau": {
         "patience": 10,
         "factor": 0.5,
         "mode": "max",
         "verbose": true
     },
 
-
     "lstm": {
         "embedding_dim": 21,
         "input_dim": 64,
         "output_dim": 64,
         "max_seq_len": 20,
-        "n_layers": 2
+        "n_layers": 2,
+        "dense_layer_dim": [16, 4]
     },
 
-    "lstm_attn":    {
+    "lstm_attn": {
         "embedding_dim": 21,
         "input_dim": 64,
         "output_dim": 64,
         "max_seq_len": 20,
         "n_layers": 2,
         "n_heads": 2,
-        "drop_out": 0.2
+        "drop_out": 0.2,
+        "dense_layer_dim": [16, 4]
     },
 
     "bert": {
@@ -98,7 +115,8 @@
         "input_dim": 64,
         "max_seq_len": 20,
         "n_layers": 2,
-        "n_heads": 2
+        "n_heads": 2,
+        "dense_layer_dim": [16, 4]
     },
 
     "lgcn": {
@@ -113,7 +131,7 @@
             "learning_rate": 0.01
         },
         "verbose_eval": 100,
-        "num_boost_round":1200,
-        "early_stopping_rounds":100
+        "num_boost_round":2000,
+        "early_stopping_rounds":450
     }
 }

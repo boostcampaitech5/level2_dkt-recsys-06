@@ -4,6 +4,9 @@ from sklearn.preprocessing import LabelEncoder
 import torch
 
 
+from .data_modify import *
+
+
 def index_data(data: dict, settings: dict) -> None:
     """
     Labels data to be used in the embedding layer
@@ -36,21 +39,7 @@ def index_data(data: dict, settings: dict) -> None:
         # Save the length of label
         label_len_dict[col] = len(unique_value)
 
-    # Save the dictionary in the settings dictionary
-    settings["label_len_dict"] = label_len_dict
-
-    return
-
-
-def process_mlp(data: dict) -> None:
-    """
-    Processes data for the MLP model
-
-    Parameters:
-        data(dict): Dictionary containing the unprocessed dataframes
-    """
-
-    average_fill_na(data["user_data"], "age")
+        settings["label_len_dict"] = label_len_dict
 
     return
 
@@ -68,7 +57,7 @@ def process_lstm(data: dict) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -86,7 +75,7 @@ def process_lstm_attn(data) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -104,7 +93,7 @@ def process_bert(data) -> None:
     data["test"] = data["test"].sort_values(by=["user_id", "timestamp"], axis=0)
 
     # Create a feature called test_cat
-    create_feature_test_cat(data)
+    # create_feature_test_cat(data)
 
     return
 
@@ -198,7 +187,7 @@ def process_lgbm(data: dict) -> None:
     return
 
 
-def process_data(data: dict, settings: dict) -> None:
+def process_data(data: dict, settings: dict, silence=False) -> None:
     """
     Merges / Drops columns / Indexes from data in order
 
@@ -206,14 +195,14 @@ def process_data(data: dict, settings: dict) -> None:
         data(dict): Dictionary containing the unprocessed dataframes
         settings(dict): Dictionary containing the settings
     """
-
+    if silence:
+        global print
+        print = str
     # Modify data
     print("Modifing Data...")
 
     # Modify/Create columns in data
-    if settings["model_name"].lower() == "mlp":
-        process_mlp(data)
-    elif settings["model_name"].lower() == "lstm":
+    if settings["model_name"].lower() == "lstm":
         process_lstm(data)
     elif settings["model_name"].lower() == "lstm_attn":
         process_lstm_attn(data)
